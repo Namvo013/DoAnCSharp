@@ -1,0 +1,20 @@
+@page
+@model NotificationsModel
+@{
+    ViewData["Title"] = "Thông báo";
+}
+
+<div class="page-head"><div><span class="eyebrow">CẬP NHẬT</span><h1>Thông báo</h1></div></div>
+<section class="notification-list">
+    @if (Model.Notifications.Count == 0)
+    {
+        <div class="empty-state"><strong>Chưa có thông báo</strong><p>Thông báo mới sẽ hiển thị tại đây.</p></div>
+    }
+    @foreach (var notification in Model.Notifications)
+    {
+        <article>
+            <div class="notification-dot reminder">!</div>
+            <div><p>@notification.Message</p><small>@notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small></div>
+        </article>
+    }
+</section>

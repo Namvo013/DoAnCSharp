@@ -1,0 +1,178 @@
+HƯỚNG DẪN CHIA HÀM VÀ GIẢI THÍCH MÃ NGUỒN FRONTEND
+File: app.js
+Số dòng trong tệp app.js: khoảng 128 dòng vật lý; một hàm có thể nằm trên nhiều dòng.
+
+Lưu ý: Số dòng dưới đây được tham chiếu theo vị trí dòng trong tệp app.js hiện tại. Một dòng dài có thể chứa nhiều mã lệnh.
+
+1. shell(content) — dòng 34–37
+Giải thích: Tạo khung giao diện chung cho các trang sau khi đăng nhập, gồm thanh trên, thanh menu bên trái và vùng nội dung chính.
+Mã chính: Kết hợp biểu tượng, thanh điều hướng, tên người dùng và nội dung trang.
+
+2. cover(book, large=false) — dòng 38–41
+Giải thích: Tạo HTML hiển thị bìa sách.
+Mã chính: Kết hợp lớp CSS, tiêu đề và tác giả; tham số large quyết định hiển thị bìa lớn hay nhỏ.
+
+3. toast(message) — dòng 42
+Giải thích: Hiển thị thông báo ngắn trên góc màn hình trong thời gian 3 giây.
+Mã chính: Thêm lớp show vào phần tử toast, sau đó xóa lớp sau 3000ms.
+
+4. escapeHtml(s) — dòng 43–44
+Giải thích: Mã hóa các ký tự đặc biệt HTML để tránh dữ liệu người dùng làm thay đổi cấu trúc trang.
+
+5. loginPage() — dòng 45–47
+Giải thích: Tạo giao diện màn hình đăng nhập của LiMS.
+Mã chính: Trả về HTML gồm ô tài khoản, ô mật khẩu, nút đăng nhập và khu vực thông báo lỗi.
+
+6. login(e) — dòng 48–79
+Giải thích: Xử lý đăng nhập bất đồng bộ bằng API backend.
+- Ngăn hành vi gửi form mặc định.
+- Đọc tài khoản và mật khẩu từ FormData.
+- Gửi yêu cầu POST tới /api/library/auth/login.
+- Nếu API trả lỗi 401: hiển thị thông báo không hợp lệ ngay dưới nút đăng nhập.
+- Nếu thành công: lưu người dùng vào localStorage, chuyển hash sang trang home và hiển thị lại giao diện.
+- Nếu không kết nối được API: hiển thị thông báo kết nối máy chủ.
+
+7. togglePassword() — dòng 80
+Giải thích: Đổi ô nhập mật khẩu giữa kiểu password và text để ẩn hoặc hiện mật khẩu.
+
+8. logout() — dòng 81–82
+Giải thích: Xóa thông tin người dùng khỏi localStorage, đặt user bằng null và chuyển về trang đăng nhập.
+
+9. homePage() — dòng 83–85
+Giải thích: Tạo giao diện trang chủ, tổng quan số sách đang mượn, sách đặt giữ, thông báo và gợi ý tài liệu.
+
+10. formatDate(value) — dòng 86
+Giải thích: Định dạng chuỗi ngày sang kiểu hiển thị ngày/tháng/năm bằng locale Việt Nam.
+
+11. bookCard(b) — dòng 87
+Giải thích: Tạo thẻ giao diện cho một cuốn sách trong trang tra cứu.
+Mã chính: Hiển thị ảnh bìa, tên, tác giả, thể loại, tình trạng còn/hết và cho phép mở chi tiết bằng openBook().
+
+12. openBook(id) — dòng 88–89
+Giải thích: Lưu mã sách được chọn vào selectedBook và chuyển sang hash book-detail để mở trang chi tiết.
+
+13. catalogPage() — dòng 90
+Giải thích: Tạo trang Tra cứu tài liệu gồm ô tìm kiếm, bộ lọc thể loại, bộ lọc tình trạng và danh sách sách.
+
+14. filterBooks() — dòng 91
+Giải thích: Lọc danh sách books theo từ khóa, thể loại và tình trạng còn sách/hết sách.
+Mã chính: Cập nhật số lượng kết quả và nội dung grid; hiển thị trạng thái trống nếu không tìm thấy tài liệu.
+
+15. quickSearch() — dòng 92–93
+Giải thích: Đọc từ khóa tra cứu nhanh trên trang chủ, chuyển sang trang Tra cứu tài liệu và thực hiện lọc.
+
+16. detailPage() — dòng 94–95
+Giải thích: Hiển thị trang chi tiết của cuốn sách đã chọn gồm tên, tác giả, ISBN, năm xuất bản và số bản còn.
+
+17. reserve(id) — dòng 96–97
+Giải thích: Tạo phiếu đặt giữ cho sách có mã id.
+Mã chính: Kiểm tra trùng đặt giữ, tạo mã phiếu, thêm vào mảng reservations và chuyển sang trang đặt giữ thành công.
+
+18. loansPage() — dòng 98
+Giải thích: Hiển thị trang Thông tin tình trạng sách và các nút lọc Tất cả, Đang mượn, Đã trả.
+
+19. renderLoanStatusRows(items) — dòng 99
+Giải thích: Vẽ các dòng phiếu mượn trong bảng trạng thái.
+Mã chính: Hiển thị mã sách, tên sách, ngày mượn, ngày hết hạn, trạng thái, số ngày còn lại hoặc quá hạn.
+
+20. filterLoanStatus(status, button) — dòng 100
+Giải thích: Lọc bảng phiếu mượn theo trạng thái và đánh dấu tab đang được chọn.
+
+21. renewLoan(id) — dòng 101–102
+Giải thích: Gia hạn phiếu mượn thêm 14 ngày nếu phiếu chưa hết lượt gia hạn.
+Mã chính: Kiểm tra renewals, cộng 14 ngày, cập nhật hạn trả và hiển thị toast thành công.
+
+22. renewalPage() — dòng 103
+Giải thích: Hiển thị trang Gia hạn mượn sách trực tuyến và danh sách phiếu đang hoạt động.
+
+23. requestRenewal(id) — dòng 104
+Giải thích: Hỏi xác nhận gia hạn bằng confirm(), sau đó gọi renewLoan() và chuyển trang gia hạn thành công.
+
+24. renewalSuccessPage() — dòng 105–107
+Giải thích: Hiển thị trang thông báo gia hạn thành công cùng tài liệu, mã phiếu và hạn trả mới.
+
+25. purchaseProposalPage() — dòng 108
+Giải thích: Tạo trang đề xuất mua tài liệu mới cho thư viện.
+
+26. submitPurchaseProposal(event) — dòng 109
+Giải thích: Nhận dữ liệu form đề xuất mua sách, thêm đề xuất vào purchaseProposals và chuyển sang trang thành công.
+
+27. proposalSuccessPage() — dòng 110–111
+Giải thích: Hiển thị thông tin đề xuất vừa gửi thành công gồm tên tài liệu và mã đề xuất.
+
+28. reservationsPage() — dòng 112–113
+Giải thích: Hiển thị danh sách sách đã đặt giữ, ngày đặt, ngày hết hiệu lực và nút Hủy đặt giữ.
+
+29. cancelReservation(id) — dòng 114–120
+Giải thích: Hủy phiếu đặt giữ theo mã id.
+- Hỏi xác nhận bằng hộp thoại.
+- Lưu phiếu vừa hủy vào cancelledReservation.
+- Loại phiếu khỏi mảng reservations.
+- Chuyển sang trang reservation-cancelled.
+
+30. reservationCancelledPage() — dòng 121
+Giải thích: Hiển thị màn hình xác nhận hủy đặt giữ thành công và cung cấp nút quay lại hoặc tra cứu sách khác.
+
+31. reservationSuccessPage() — dòng 122–123
+Giải thích: Hiển thị thông báo đặt giữ thành công, mã phiếu, tài liệu và trạng thái.
+
+32. guidelinesPage() — dòng 124
+Giải thích: Hiển thị trang hướng dẫn và nội quy thư viện.
+
+33. notificationsPage() — dòng 125
+Giải thích: Đánh dấu thông báo đã đọc và tạo giao diện danh sách thông báo.
+
+34. profilePage() — dòng 126
+Giải thích: Hiển thị thông tin tài khoản, lịch sử sách đang mượn, nợ phạt và form đổi mật khẩu.
+
+35. changePassword(event) — dòng 127–128
+Giải thích: Gửi yêu cầu đổi mật khẩu tới API.
+- Kiểm tra mật khẩu mới và mật khẩu xác nhận có khớp hay không.
+- Gửi POST tới /api/library/auth/change-password.
+- Nếu API thành công, làm sạch form và hiển thị thông báo.
+
+36. router() — dòng 129
+Giải thích: Điều hướng trang theo location.hash khi hash thay đổi.
+
+37. render(pageFn) — dòng 130
+Giải thích: Chèn HTML của trang được chọn vào thẻ có id app.
+
+38. pageRenderer(hash) — dòng 131 trở đi
+Giải thích: Tạo ánh xạ giữa tên hash và hàm tương ứng để render đúng trang.
+Ví dụ: hash catalog sẽ gọi catalogPage(), hash loans sẽ gọi loansPage(), hash login sẽ gọi loginPage().
+
+39. Xử lý sự kiện khởi chạy và chuyển trang — cuối tệp
+Các câu lệnh ở cuối app.js có nhiệm vụ:
+- Lắng nghe sự kiện hashchange để chuyển trang.
+- Mở hoặc đóng sidebar trên thiết bị nhỏ khi bấm nút mobile-menu.
+- Nếu địa chỉ không có hash, tự chuyển trang theo trạng thái đăng nhập.
+- Gọi render(pageRenderer(currentPage)) lần đầu để hiển thị giao diện lúc tải trang.
+
+
+HƯỚNG DẪN CHIA HÀM VÀ GIẢI THÍCH API BACKEND
+File: LiMS.Api/Controllers/LibraryController.cs
+
+1. Health() — dòng 13
+Kiểm tra API có hoạt động và kết nối cơ sở dữ liệu thành công hay không.
+
+2. Login(request) — dòng 16–22
+Nhận tài khoản và mật khẩu, tìm người dùng trong bảng Users và kiểm tra trạng thái hoạt động cùng PasswordHash.
+Trả 200 nếu hợp lệ, 401 nếu tài khoản hoặc mật khẩu không đúng.
+
+3. ChangePassword(request) — dòng 25–39
+Kiểm tra các trường bắt buộc, mật khẩu hiện tại, độ dài mật khẩu mới rồi cập nhật PasswordHash trong database.
+
+4. Books() — dòng 43
+Trả danh sách toàn bộ sách trong bảng Books dưới dạng JSON.
+
+5. GetUser(studentCode) — dòng 46–49
+Tìm và trả thông tin người dùng theo mã sinh viên; trả NotFound nếu không tồn tại.
+
+6. Loans(studentCode) — dòng 52–56
+Tìm người dùng theo mã sinh viên, sau đó trả danh sách phiếu mượn gồm thông tin sách liên quan.
+
+7. Reservations(studentCode) — dòng 59–63
+Tìm người dùng theo mã sinh viên, sau đó trả danh sách phiếu đặt giữ của người dùng.
+
+8. Notifications(studentCode) — dòng 66–70
+Tìm người dùng và trả danh sách thông báo, sắp xếp theo thời gian tạo giảm dần.

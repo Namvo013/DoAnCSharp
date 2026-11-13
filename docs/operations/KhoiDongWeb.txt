@@ -1,0 +1,150 @@
+KHỞI ĐỘNG TRANG WEB LiMS
+=========================
+
+Mở Terminal tại thư mục dự án: D:\DoAnC#
+
+1. Kiểm tra SQL Server và khởi động dịch vụ database
+------------------------------------------------------
+Chạy PowerShell với quyền Administrator:
+
+$defaultSql = Get-Service -Name MSSQLSERVER -ErrorAction SilentlyContinue
+if ($defaultSql) {
+    $defaultSql | Select-Object Name, Status, DisplayName
+    if ($defaultSql.Status -ne "Running") {
+        Start-Service -Name MSSQLSERVER
+    }
+}
+
+Nếu máy dùng SQL Server Express, tên dịch vụ thường là MSSQL$SQLEXPRESS. Lệnh khởi động chung có thể là:
+
+$expressSql = Get-Service -Name *SQLEXPRESS* -ErrorAction SilentlyContinue
+$expressSql | Select-Object Name, Status, DisplayName
+if ($expressSql -and $expressSql.Status -ne "Running") {
+    Start-Service -InputObject $expressSql
+}
+
+Máy có các SQL Server instance khác có thể liệt kê bằng:
+
+Get-CimInstance Win32_Service |
+  Where-Object Name -Like "MSSQL$*" |
+  Select-Object Name, State, DisplayName
+
+Nếu instance hiển thị là MSSQL$MSSQL2022, dùng chuỗi kết nối:
+
+Server=localhost\MSSQL2022;Database=LiMSDB;Trusted_Connection=True;TrustServerCertificate=True
+
+2. Kiểm tra kết nối database SQL Server
+---------------------------------------
+Kết nối đang được cấu hình trong file LiMS.Api\appsettings.json:
+
+Server=localhost;Database=LiMSDB;Trusted_Connection=True;TrustServerCertificate=True
+
+Nếu SQL Server Express, thay dòng ConnectionStrings trong appsettings.json bằng:
+
+Server=localhost\SQLEXPRESS;Database=LiMSDB;Trusted_Connection=True;TrustServerCertificate=True
+
+Kiểm tra bằng sqlcmd nếu công cụ đã được cài:
+
+sqlcmd -S localhost -E -d LiMSDB -Q "SELECT DB_NAME();"
+
+3. Khởi động API Backend .NET
+-----------------------------
+Mở Terminal thứ nhất tại thư mục D:\DoAnC#, chạy:
+
+Nếu API đang chạy, đóng cửa sổ API hoặc dừng process đang giữ port 5107:
+
+$listener = Get-NetTCPConnection -LocalPort 5107 -State Listen -ErrorAction SilentlyContinue
+if ($listener) { Stop-Process -Id $listener.OwningProcess -Force }
+
+Set-Location "D:\DoAnC#\LiMS.Api"
+dotnet restore
+dotnet run --launch-profile http --no-build
+
+Khi chạy dotnet run, terminal sẽ giữ cửa sổ API và hiện thông báo:
+"Application started. Press Ctrl+C to shut down."
+Đây không phải lỗi. Không đóng terminal khi đang dùng API.
+
+Nếu muốn mở API trong cửa sổ riêng và trả lại terminal hiện tại:
+
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location 'D:\DoAnC#\LiMS.Api'; dotnet run --launch-profile http --no-build"
+
+API chạy tại: http://localhost:5107
+
+Khi API khởi động lần đầu sau khi cập nhật Backend:
+- EF Core tự tạo các bảng mới theo ERD và chạy import dữ liệu cũ đúng một lần.
+- Các bảng cũ Users, Books, Loans, Reservations, Notifications được giữ nguyên; migration chỉ thêm schema mới.
+- Số bản sách cũ chưa xác định trạng thái được đánh dấu Unavailable để thủ thư kiểm tra trong màn hình bản sao.
+
+Tạo tài khoản Admin lần đầu (chạy trước lệnh dotnet run ở trên nếu database chưa có Admin):
+
+$env:BootstrapAdmin__Username = "admin"
+$secret = Read-Host "Nhập mật khẩu Admin mới" -AsSecureString
+$env:BootstrapAdmin__Password = [System.Net.NetworkCredential]::new("", $secret).Password
+Set-Location "D:\DoAnC#\LiMS.Api"
+dotnet run --launch-profile http
+
+Đây là cấu hình môi trường tạm cho cửa sổ PowerShell hiện tại; mật khẩu không được lưu trong source code.
+Nhập lại username/password này trong ứng dụng Admin để đăng nhập. Nếu username đã tồn tại, API sẽ không ghi đè mật khẩu.
+Khóa ký JWT của máy hiện tại được lưu bằng .NET User Secrets, không nằm trong source code.
+
+Kiểm tra kết nối database:
+
+curl.exe http://localhost:5107/api/library/health
+
+Kết quả mong đợi: {"status":"ok","database":true}
+
+4. Khởi động giao diện Website
+------------------------------
+Mở Terminal thứ hai tại thư mục D:\DoAnC#, chạy:
+
+Set-Location "D:\DoAnC#"
+dotnet run --project ".\LiMS.Web\LiMS.Web.csproj" --launch-profile http
+
+Website Razor Pages chạy tại: http://localhost:5500
+Giao diện Razor Pages gọi API tại cổng 5107. Sau khi đăng nhập, API cấp JWT; Web giữ phiên trong cookie HttpOnly và session phía máy chủ. Chọn "Ghi nhớ đăng nhập" để giữ cookie qua lần mở trình duyệt tiếp theo, tối đa đến khi JWT hết hạn.
+
+Các luồng Web đã kết nối API: tra cứu/lọc/chi tiết sách, đặt giữ sách đang được mượn, xem phiếu mượn, gia hạn phiếu đủ điều kiện và hủy đặt giữ. Đặt giữ không áp dụng khi sách còn bản sao sẵn sàng để mượn.
+Khôi phục mật khẩu hiện hướng dẫn liên hệ thủ thư; cần cấu hình dịch vụ gửi email trước khi có thể bật quy trình tự động.
+
+Hoặc chạy trực tiếp bằng file:
+
+start-frontend.bat
+
+5. Khởi động ứng dụng quản trị WinForms
+---------------------------------------
+Đảm bảo API đã chạy, sau đó mở terminal tại D:\DoAnC# và chạy:
+
+start-admin.bat
+
+Hoặc chạy trực tiếp:
+
+dotnet run --project ".\LiMS.Admin\LiMS.Admin.csproj"
+
+Đăng nhập bằng tài khoản có vai trò Admin hoặc Librarian đã được tạo trong database. WinForms và Website đều gọi chung API; chỉ API truy cập SQL Server.
+
+6. Kiểm tra nhanh toàn hệ thống
+--------------------------------
+Mở các địa chỉ sau:
+
+http://localhost:5500
+http://localhost:5107/api/library/health
+http://localhost:5107/api/library/books
+
+7. Khởi động nhanh bằng một cửa sổ Terminal
+--------------------------------------------
+Mở PowerShell và chạy:
+
+$apiListener = Get-NetTCPConnection -LocalPort 5107 -State Listen -ErrorAction SilentlyContinue
+if ($apiListener) { Stop-Process -Id $apiListener.OwningProcess -Force }
+
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location 'D:\DoAnC#\LiMS.Api'; dotnet run --launch-profile http"
+Start-Sleep -Seconds 8
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location 'D:\DoAnC#'; dotnet run --project '.\LiMS.Web\LiMS.Web.csproj' --launch-profile http"
+Start-Sleep -Seconds 2
+Start-Process "http://localhost:5500"
+
+Lưu ý:
+- Luôn khởi động SQL Server trước API.
+- Không tắt cửa sổ API và cửa sổ Website khi đang sử dụng.
+- Nếu API báo không kết nối database, kiểm tra tên dịch vụ SQL Server và chuỗi kết nối trong appsettings.json.
+- Các dòng NU1902 và NU1903 là cảnh báo bảo mật của gói phụ thuộc, không khiến API không khởi động.

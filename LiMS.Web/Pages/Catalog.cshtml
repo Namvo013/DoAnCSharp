@@ -1,0 +1,55 @@
+@page
+@model CatalogModel
+@{
+    ViewData["Title"] = "Tra cứu tài liệu";
+}
+
+<div class="page-head"><div><span class="eyebrow">THƯ MỤC</span><h1>Tra cứu tài liệu</h1></div></div>
+<form method="get" class="catalog-tools">
+    <div class="search-box">
+        <label><input asp-for="Query" maxlength="100" placeholder="Tìm theo tên sách, tác giả hoặc ISBN..." /></label>
+        <button class="primary" type="submit">Tìm kiếm</button>
+    </div>
+    <div class="filters">
+        <select asp-for="Category" aria-label="Lọc theo thể loại" onchange="this.form.requestSubmit()">
+            <option value="">Tất cả thể loại</option>
+            @foreach (var category in Model.Categories)
+            {
+                <option value="@category">@category</option>
+            }
+        </select>
+        <select asp-for="Availability" aria-label="Lọc theo tình trạng" onchange="this.form.requestSubmit()">
+            <option value="">Tất cả tình trạng</option>
+            <option value="available">Còn sách</option>
+            <option value="unavailable">Đang hết</option>
+        </select>
+        <select asp-for="Sort" aria-label="Sắp xếp" onchange="this.form.requestSubmit()">
+            <option value="newest">Năm mới nhất</option>
+            <option value="title">Tên A–Z</option>
+        </select>
+    </div>
+</form>
+@if (Model.SearchError is not null)
+{
+    <div class="form-message error" role="alert">@Model.SearchError</div>
+}
+<div class="result-bar"><strong>@Model.Books.Count tài liệu</strong></div>
+<section class="catalog-grid">
+    @if (Model.Books.Count == 0)
+    {
+        <div class="empty-state"><strong>Không tìm thấy tài liệu phù hợp</strong><p>Hãy thử từ khóa khác.</p></div>
+    }
+    @foreach (var book in Model.Books)
+    {
+        <article class="book-card">
+            <div class="cover clean"><strong>@book.Title</strong><small>@book.Author</small></div>
+            <div>
+                <span class="tag">@book.Category</span>
+                <h3>@book.Title</h3>
+                <p>@book.Author</p>
+                <small class="availability @(book.AvailableCopies == 0 ? "empty" : "")">@(book.AvailableCopies > 0 ? $"{book.AvailableCopies}/{book.TotalCopies} bản còn" : $"Đang hết ({book.TotalCopies} bản)")</small>
+                <a class="secondary detail-link" asp-page="/Book" asp-route-id="@book.Id">Xem chi tiết</a>
+            </div>
+        </article>
+    }
+</section>

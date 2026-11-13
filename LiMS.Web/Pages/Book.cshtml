@@ -1,0 +1,53 @@
+@page "{id:int}"
+@model BookModel
+@{
+    ViewData["Title"] = "Chi tiết tài liệu";
+}
+
+<a class="back" asp-page="/Catalog">← Quay lại tra cứu tài liệu</a>
+@if (Model.SuccessMessage is not null)
+{
+    <div class="form-message success" role="status">@Model.SuccessMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="form-message error" role="alert">@Model.ErrorMessage</div>
+}
+@if (Model.Book is not null)
+{
+    var book = Model.Book;
+    <section class="detail">
+        <aside><div class="cover large clean"><strong>@book.Title</strong><small>@book.Author</small></div></aside>
+        <div class="detail-main">
+            <span class="tag">@book.Category</span>
+            <h1>@book.Title</h1>
+            <h3>@book.Author</h3>
+            <div class="detail-meta">
+                <div><small>ISBN</small><strong>@(book.Isbn ?? "Chưa cập nhật")</strong></div>
+                <div><small>Năm xuất bản</small><strong>@(book.PublishedYear?.ToString() ?? "Chưa cập nhật")</strong></div>
+                <div><small>Nhà xuất bản</small><strong>@(book.Publisher ?? "Chưa cập nhật")</strong></div>
+            </div>
+            <p class="description">@(book.Description ?? "Chưa có mô tả cho tài liệu này.")</p>
+            <div class="availability-box">
+                <div>
+                    <strong>@(book.AvailableCopies > 0 ? "Sẵn sàng tại thư viện" : "Hiện đang hết sách")</strong>
+                    <small>@book.AvailableCopies/@book.TotalCopies bản có thể mượn · Vị trí: @(book.ShelfLocation ?? "Chưa cập nhật")</small>
+                </div>
+                @if (book.AvailableCopies == 0 && book.TotalCopies > 0)
+                {
+                    <form method="post" asp-page-handler="Reserve" asp-route-id="@book.Id">
+                        <button class="primary" type="submit">Đặt giữ</button>
+                    </form>
+                }
+                else if (book.AvailableCopies > 0)
+                {
+                    <span class="small-muted">Sách còn, vui lòng mượn tại quầy.</span>
+                }
+                else
+                {
+                    <span class="small-muted">Không có bản sao khả dụng để đặt giữ.</span>
+                }
+            </div>
+        </div>
+    </section>
+}
