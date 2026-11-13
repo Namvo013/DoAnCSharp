@@ -1,0 +1,336 @@
+2.2. Screen items
+
+# | Item name | Control | Data type | I/O | Mandatory | Default Value | Range Value
+1 | Đăng nhập label | Label | Text | O | | Đăng nhập |
+2 | Tên đăng nhập label | Label | Text | O | | Mã sinh viên / Tài khoản |
+3 | Tên đăng nhập | TextBox | Text | I | X | 3124411177 | Chuỗi ký tự, tối đa 20 ký tự
+4 | Mật khẩu label | Label | Text | O | | Mật khẩu |
+5 | Mật khẩu | TextBox | Password | I | X | Demo123 | Chuỗi ký tự, 6–50 ký tự
+6 | Đăng nhập button | Button | | | | Đăng nhập |
+7 | Quên mật khẩu button | Button | | | | Quên mật khẩu |
+
+
+2.3. Main screen interaction
+
+1) Hệ thống sẽ validate dữ liệu đăng nhập như sau:
+
+a) Khi người dùng không nhập tài khoản hoặc mật khẩu, hệ thống không thực hiện đăng nhập và thông báo yêu cầu nhập đầy đủ thông tin.
+
+b) Khi người dùng bấm vào nút Đăng nhập, hệ thống kiểm tra tài khoản và mật khẩu trên cơ sở dữ liệu LiMSDB thông qua API đăng nhập.
+
+c) Khi tài khoản hoặc mật khẩu không hợp lệ, hệ thống hiển thị thông báo lỗi ngay bên dưới nút Đăng nhập và không cho phép truy cập trang Trang chủ.
+
+- Khi tài khoản không tồn tại hoặc mật khẩu không khớp: thông báo “Thông tin đăng nhập không hợp lệ. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.”
+- Khi tài khoản không hoạt động: không cho phép đăng nhập và hiển thị thông báo tài khoản không hợp lệ.
+- Khi không thể kết nối máy chủ API: hệ thống hiển thị “Không thể kết nối máy chủ. Vui lòng thử lại sau.”
+
+d) Khi người dùng nhập tài khoản hoặc mật khẩu hợp lệ, hệ thống lưu thông tin đăng nhập và chuyển sang trang Trang chủ của hệ thống quản lý thư viện.
+
+e) Khi người dùng bấm vào nút ẩn/hiện mật khẩu, hệ thống thay đổi kiểu hiển thị của ô Mật khẩu.
+
+f) Khi người dùng chọn Ghi nhớ đăng nhập, hệ thống lưu thông tin phiên đăng nhập trên trình duyệt để lần truy cập sau không phải đăng nhập lại nếu phiên đăng nhập vẫn còn hiệu lực.
+
+g) Khi người dùng bấm vào liên kết Quên mật khẩu, hệ thống chuyển sang màn hình khôi phục mật khẩu.
+
+h) Khi người dùng sử dụng phím Tab, hệ thống chuyển focus theo thứ tự: ô Tên đăng nhập, ô Mật khẩu, ô chọn Ghi nhớ đăng nhập, liên kết Quên mật khẩu và nút Đăng nhập.
+
+
+2.4. Screen displaying
+
+1) Thông báo lỗi dữ liệu không hợp lệ:
+
+- Khi người dùng chưa nhập tài khoản hoặc mật khẩu, hệ thống hiển thị thông báo yêu cầu nhập đầy đủ thông tin.
+- Khi tài khoản hoặc mật khẩu sai, hệ thống hiển thị thông báo lỗi ngay phía dưới nút Đăng nhập.
+- Khi thông tin đăng nhập hợp lệ, khu vực thông báo lỗi không được hiển thị.
+- Khi người dùng sửa dữ liệu và đăng nhập lại, thông báo lỗi cũ sẽ được xóa khỏi màn hình.
+
+2) Khi dữ liệu đăng nhập đang được gửi lên máy chủ:
+
+- Nút Đăng nhập được vô hiệu hóa để tránh người dùng gửi nhiều yêu cầu đăng nhập cùng lúc.
+
+3) Khi đăng nhập thành công:
+
+- Hệ thống lưu thông tin người dùng vào localStorage và chuyển sang trang Trang chủ.
+- Tên người dùng và mã sinh viên được hiển thị ở thanh công cụ của hệ thống.
+
+4) Khi đăng nhập thất bại:
+
+- Hệ thống giữ người dùng tại màn hình Đăng nhập.
+- Màn hình không chuyển sang trang Trang chủ và dữ liệu nhập sai không được lưu làm phiên đăng nhập.
+
+
+
+PHẦN MÔ TẢ CHỨC NĂNG TÌM KIẾM SÁCH
+
+2.2. Screen items
+
+# | Item name | Control | Data type | I/O | Mandatory | Default Value | Range Value
+1 | Tiêu đề màn hình label | Label | Text | O | | Tra cứu tài liệu |
+2 | Ô tìm kiếm label | Label | Text | O | | Tìm theo tên sách, tác giả hoặc ISBN |
+3 | Ô tìm kiếm | TextBox | Text | I | | | Chuỗi ký tự, tối đa 100 ký tự
+4 | Nút tìm kiếm | Button | Text | | | Tìm kiếm |
+5 | Bộ lọc thể loại | ComboBox | Text | I | | Tất cả thể loại | Danh sách thể loại của sách trong hệ thống
+6 | Bộ lọc tình trạng | ComboBox | Text | I | | Tình trạng | Còn sách hoặc Đang hết
+7 | Bộ lọc sắp xếp | ComboBox | Text | I | | Năm mới nhất | Năm mới nhất hoặc Tên A–Z
+8 | Số lượng kết quả | Label | Text | O | | 0 tài liệu |
+9 | Danh sách tài liệu | GridView | Text | O | | |
+10 | Thông tin sách | Label | Text | O | | Tên sách, tác giả, thể loại, năm xuất bản và tình trạng |
+11 | Nút xem chi tiết | Button | Text | | | Xem chi tiết |
+12 | Nút đặt giữ | Button | Text | | | Đặt giữ |
+
+
+2.3. Main screen interaction
+
+1) Hệ thống tìm kiếm và hiển thị tài liệu theo các điều kiện sau:
+
+a) Người dùng nhập từ khóa vào ô tìm kiếm. Từ khóa có thể là tên sách, tên tác giả hoặc mã ISBN.
+
+b) Khi người dùng nhập dữ liệu, hệ thống có thể cập nhật danh sách tài liệu đang phù hợp với nội dung tìm kiếm.
+
+c) Khi người dùng bấm nút Tìm kiếm, hệ thống tìm trong danh sách sách theo từ khóa đã nhập.
+
+- Khi tìm thấy tài liệu phù hợp, hệ thống hiển thị các tài liệu thỏa điều kiện trong danh sách kết quả.
+- Khi không tìm thấy tài liệu phù hợp, hệ thống hiển thị thông báo “Không tìm thấy tài liệu phù hợp.”
+- Khi người dùng không nhập từ khóa, hệ thống hiển thị toàn bộ danh sách tài liệu trong thư viện.
+
+ d) Người dùng có thể chọn bộ lọc thể loại để chỉ hiển thị sách thuộc thể loại đã chọn.
+
+e) Người dùng có thể chọn bộ lọc tình trạng để hiển thị sách còn sách hoặc sách đang hết.
+
+f) Người dùng có thể thay đổi thứ tự sắp xếp bằng bộ lọc Năm mới nhất hoặc Tên A–Z.
+
+g) Khi người dùng kết hợp nhiều điều kiện tìm kiếm và lọc, hệ thống hiển thị tài liệu thỏa mãn đồng thời tất cả các điều kiện đó.
+
+h) Khi người dùng bấm vào nút Xem chi tiết của một tài liệu, hệ thống chuyển sang màn hình chi tiết tài liệu và hiển thị đầy đủ thông tin của sách.
+
+i) Khi tài liệu còn sách, người dùng có thể bấm nút Đặt giữ để gửi yêu cầu đặt giữ tài liệu.
+
+j) Khi tài liệu đang hết, hệ thống hiển thị tình trạng “Đang hết” và không cho đặt giữ nếu không có bản sao khả dụng.
+
+k) Khi người dùng sử dụng phím Tab, hệ thống chuyển focus theo thứ tự: ô tìm kiếm, nút Tìm kiếm, bộ lọc thể loại, bộ lọc tình trạng, bộ lọc sắp xếp và danh sách tài liệu.
+
+
+2.4. Screen displaying
+
+1) Thông tin danh sách tài liệu:
+
+- Trên màn hình Tra cứu tài liệu, hệ thống hiển thị tên tài liệu, tác giả, thể loại, năm xuất bản, mã ISBN, số bản còn và tổng số bản của từng tài liệu.
+- Số lượng tài liệu tìm thấy được hiển thị tại thanh kết quả.
+- Nếu không có tài liệu phù hợp, danh sách kết quả không được hiển thị và hệ thống đưa ra thông báo không tìm thấy dữ liệu.
+- Các biểu tượng hoặc nhãn tình trạng được hiển thị bằng màu sắc để phân biệt sách còn sách và sách đang hết.
+
+2) Khi người dùng nhập từ khóa tìm kiếm:
+
+- Danh sách tài liệu được cập nhật theo nội dung tìm kiếm hoặc kết quả được hiển thị sau khi bấm nút Tìm kiếm.
+- Nội dung ô tìm kiếm không được xóa tự động khi hệ thống đang lọc dữ liệu.
+
+3) Khi người dùng thay đổi điều kiện lọc:
+
+- Hệ thống tự động cập nhật danh sách tài liệu phù hợp với thể loại, tình trạng và thứ tự sắp xếp đã chọn.
+- Chỉ hiển thị tài liệu thỏa mãn tất cả điều kiện đang được chọn.
+
+4) Khi người dùng chọn Xem chi tiết:
+
+- Hệ thống chuyển sang màn hình chi tiết tài liệu đã chọn.
+- Toàn bộ thông tin của tài liệu được hiển thị tại màn hình chi tiết.
+
+5) Khi người dùng chọn Đặt giữ:
+
+- Nếu tài liệu còn bản sao, hệ thống cho phép tạo phiếu đặt giữ và thông báo đặt giữ thành công.
+- Nếu tài liệu đang hết hoặc không thể đặt giữ, hệ thống hiển thị tình trạng phù hợp và không tạo phiếu đặt giữ.
+
+
+
+PHẦN MÔ TẢ CHỨC NĂNG XEM TÌNH TRẠNG SÁCH
+
+2.2. Screen items
+
+# | Item name | Control | Data type | I/O | Mandatory | Default Value | Range Value
+1 | Thông tin sách label | Label | Text | O | | Thông tin sách |
+2 | Mã sách label | Label | Text | O | | Mã sách |
+3 | Mã sách | Textbox | Text | O | | | Chuỗi ký tự
+4 | Tên sách label | Label | Text | O | | Tên sách |
+5 | Tên sách | Textbox | Text | O | | | Chuỗi ký tự
+6 | Ngày mượn label | Label | Text | O | | Ngày mượn |
+7 | Ngày mượn | Textbox | Date | O | | | dd/MM/yyyy
+8 | Ngày hết hạn label | Label | Text | O | | Ngày hết hạn |
+9 | Ngày hết hạn | Textbox | Date | O | | | dd/MM/yyyy
+
+
+2.3. Main screen interaction
+
+1) Hệ thống hiển thị tình trạng sách được mượn theo các điều kiện sau:
+
+a) Khi người dùng truy cập chức năng xem tình trạng sách hoặc phiếu mượn của tôi, hệ thống lấy danh sách sách mà người dùng đã mượn từ cơ sở dữ liệu.
+
+b) Mỗi phiếu mượn được hiển thị với các thông tin: mã sách, tên sách, ngày mượn và ngày hết hạn của sách.
+
+c) Khi người dùng có sách đang được mượn, hệ thống hiển thị ngày hết hạn và tình trạng “Đang mượn”.
+
+d) Khi thời điểm hiện tại chưa đến ngày hết hạn, hệ thống tính và hiển thị thời gian còn lại đến hạn trả sách.
+
+e) Khi thời điểm hiện tại đã vượt ngày hết hạn, hệ thống cập nhật tình trạng quá hạn và hiển thị cảnh báo cho người dùng.
+
+f) Khi người dùng đã trả sách, hệ thống hiển thị tình trạng “Đã trả” và không cho phép thực hiện gia hạn đối với phiếu đó.
+
+g) Khi phiếu mượn đang hoạt động, người dùng có thể chọn chức năng Gia hạn nếu phiếu chưa quá hạn và chưa hết lượt gia hạn.
+
+h) Khi người dùng sử dụng phím Tab, hệ thống chuyển focus theo thứ tự đến các mục trong danh sách tình trạng sách và nút Gia hạn nếu phiếu có thể được gia hạn.
+
+
+2.4. Screen displaying
+
+1) Thông tin tình trạng sách:
+
+- Tên sách, mã phiếu hoặc mã sách, ngày mượn, ngày hết hạn và trạng thái được hiển thị trong bảng thông tin sách.
+- Các phiếu đang ở trạng thái Đang mượn được hiển thị bằng nhãn màu xanh.
+- Các phiếu đã trả được hiển thị bằng nhãn màu xanh lá.
+- Nếu phiếu mượn đã quá hạn, hệ thống hiển thị cảnh báo quá hạn để người dùng chú ý.
+
+2) Khi người dùng không có phiếu mượn:
+
+- Hệ thống hiển thị thông báo không có sách đang được mượn hoặc danh sách phiếu mượn trống.
+
+3) Khi người dùng chọn Gia hạn:
+
+- Hệ thống kiểm tra điều kiện và hiển thị ngày hết hạn mới nếu gia hạn thành công.
+- Nếu không đủ điều kiện gia hạn, hệ thống không thay đổi ngày hết hạn và hiển thị thông báo phù hợp.
+
+4) Khi người dùng xem chi tiết một phiếu mượn:
+
+- Hệ thống hiển thị đầy đủ mã sách, tên sách, ngày mượn, ngày hết hạn và tình trạng của phiếu mượn.
+
+
+
+PHẦN MÔ TẢ CHỨC NĂNG THÔNG TIN ĐẶT GIỮ SÁCH
+
+2.2. Screen items
+
+# | Item name | Control | Data type | I/O | Mandatory | Default Value | Range Value
+1 | Tiêu đề màn hình label | Label | Text | O | | Sách đã đặt giữ |
+2 | Thông tin đặt giữ sách label | Label | Text | O | | Thông tin đặt giữ sách |
+3 | Tên sách label | Label | Text | O | | Tên sách |
+4 | Tên sách | Textbox | Text | O | | | Chuỗi ký tự
+5 | Mã phiếu label | Label | Text | O | | Mã phiếu |
+6 | Mã phiếu | Textbox | Text | O | | | Chuỗi ký tự
+7 | Ngày đặt label | Label | Text | O | | Ngày đặt |
+8 | Ngày đặt | Textbox | Date | O | | | dd/MM/yyyy
+9 | Ngày hết hiệu lực label | Label | Text | O | | Hết hiệu lực |
+10 | Ngày hết hiệu lực | Textbox | Date | O | | | dd/MM/yyyy
+11 | Trạng thái label | Label | Text | O | | Trạng thái |
+12 | Trạng thái đặt giữ | Label | Text | O | | Đang chờ |
+13 | Nút hủy đặt giữ | Button | Text | | | Hủy đặt giữ |
+
+
+2.3. Main screen interaction
+
+1) Hệ thống hiển thị thông tin các sách đã được người dùng đặt giữ theo các điều kiện sau:
+
+a) Khi người dùng truy cập chức năng Sách đã đặt giữ, hệ thống lấy danh sách phiếu đặt giữ của tài khoản đang đăng nhập.
+
+b) Mỗi phiếu đặt giữ được hiển thị với các thông tin: tên sách, mã phiếu, ngày đặt, ngày hết hiệu lực và trạng thái đặt giữ.
+
+c) Khi sách được đặt giữ thành công, hệ thống tạo mã phiếu, lưu trạng thái “Đang chờ” và chuyển sang màn hình thông báo đặt giữ thành công.
+
+d) Khi người dùng bấm nút Hủy đặt giữ, hệ thống yêu cầu xác nhận thao tác trước khi hủy phiếu đặt giữ.
+
+e) Khi người dùng xác nhận hủy đặt giữ, hệ thống xóa phiếu đặt giữ khỏi danh sách và chuyển sang màn hình thông báo hủy đặt giữ thành công.
+
+f) Khi phiếu đặt giữ chưa đến ngày hết hiệu lực, hệ thống duy trì trạng thái “Đang chờ”.
+
+g) Khi phiếu đặt giữ đã hết hiệu lực, hệ thống cập nhật trạng thái phù hợp và không cho phép người dùng tiếp tục sử dụng phiếu đó.
+
+h) Khi người dùng chưa có sách nào được đặt giữ, hệ thống hiển thị thông báo “Chưa có sách đặt giữ”.
+
+i) Khi người dùng sử dụng phím Tab, hệ thống chuyển focus theo thứ tự đến danh sách phiếu đặt giữ, nút Hủy đặt giữ và các nút điều hướng liên quan.
+
+
+2.4. Screen displaying
+
+1) Thông tin đặt giữ sách:
+
+- Tên sách, mã phiếu, ngày đặt, ngày hết hiệu lực và trạng thái được hiển thị trong bảng danh sách sách đã đặt giữ.
+- Phiếu đang ở trạng thái “Đang chờ” được hiển thị bằng nhãn màu vàng.
+- Khi người dùng đặt giữ thành công, hệ thống hiển thị thông tin tài liệu, mã phiếu và trạng thái trong màn hình thành công.
+
+2) Khi người dùng chưa có phiếu đặt giữ:
+
+- Hệ thống hiển thị thông báo “Chưa có sách đặt giữ”.
+- Nội dung hướng dẫn người dùng tra cứu tài liệu và tiến hành đặt giữ được hiển thị bên dưới thông báo.
+
+3) Khi người dùng hủy phiếu đặt giữ:
+
+- Phiếu đặt giữ bị hủy sẽ không còn xuất hiện trong danh sách sách đang đặt giữ.
+- Hệ thống hiển thị màn hình thông báo hủy đặt giữ thành công.
+- Khi người dùng chọn thao tác quay lại, hệ thống có thể chuyển sang danh sách sách đã đặt giữ hoặc trang tra cứu tài liệu.
+
+4) Khi phiếu đặt giữ đã hết hiệu lực:
+
+- Phiếu không còn hiệu lực sẽ được hiển thị với trạng thái phù hợp hoặc được loại khỏi danh sách đặt giữ đang hoạt động.
+- Người dùng cần tạo phiếu đặt giữ mới nếu vẫn muốn giữ tài liệu đó.
+
+
+
+PHẦN MÔ TẢ CHỨC NĂNG HỦY ĐẶT GIỮ SÁCH
+
+2.2. Screen items
+
+# | Item name | Control | Data type | I/O | Mandatory | Default Value | Range Value
+1 | Tiêu đề trang label | Label | Text | O | | Hủy đặt giữ sách |
+2 | Thông tin phiếu label | Label | Text | O | | Thông tin phiếu đặt giữ |
+3 | Tên tài liệu label | Label | Text | O | | Tài liệu |
+4 | Tên tài liệu | Textbox | Text | O | | | Chuỗi ký tự
+5 | Mã phiếu label | Label | Text | O | | Mã phiếu |
+6 | Mã phiếu | Textbox | Text | O | | | Chuỗi ký tự
+7 | Trạng thái label | Label | Text | O | | Trạng thái |
+8 | Trạng thái | Label | Text | O | | Đã hủy |
+9 | Nút xác nhận hủy | Button | Text | | | Xác nhận |
+10 | Nút hủy đặt giữ | Button | Text | | | Hủy đặt giữ |
+11 | Nút quay lại | Button | Text | | | Quay lại sách đặt giữ |
+12 | Nút tra cứu tài liệu khác | Button | Text | | | Tra cứu tài liệu khác |
+
+
+2.3. Main screen interaction
+
+1) Hệ thống xử lý việc hủy đặt giữ sách theo các điều kiện sau:
+
+a) Khi người dùng chọn nút Hủy đặt giữ tại màn hình Sách đã đặt giữ, hệ thống hiển thị hộp thoại xác nhận với nội dung “Xác nhận hủy phiếu đặt giữ này?”.
+
+b) Khi người dùng chọn Xác nhận trong hộp thoại, hệ thống kiểm tra mã phiếu đặt giữ đang được chọn.
+
+c) Khi phiếu đặt giữ hợp lệ, hệ thống xóa phiếu đặt giữ khỏi danh sách đang hoạt động và lưu thông tin phiếu vừa được hủy để hiển thị trên màn hình xác nhận.
+
+d) Khi người dùng xác nhận hủy thành công, hệ thống chuyển sang màn hình thông báo “Hủy đặt giữ thành công”.
+
+e) Khi người dùng không xác nhận hủy, phiếu đặt giữ vẫn tồn tại trong danh sách và không có dữ liệu nào bị thay đổi.
+
+f) Khi phiếu đặt giữ không tồn tại hoặc đã được xử lý, hệ thống không cho phép hủy lại và không thay đổi danh sách phiếu đặt giữ.
+
+g) Khi người dùng chọn nút Quay lại sách đặt giữ, hệ thống chuyển về danh sách các phiếu đặt giữ còn hiệu lực.
+
+h) Khi người dùng chọn nút Tra cứu tài liệu khác, hệ thống chuyển sang màn hình Tra cứu tài liệu.
+
+i) Khi người dùng sử dụng phím Tab, hệ thống chuyển focus theo thứ tự đến các nút Hủy đặt giữ, Xác nhận, Quay lại sách đặt giữ và Tra cứu tài liệu khác.
+
+
+2.4. Screen displaying
+
+1) Thông tin xác nhận hủy đặt giữ:
+
+- Khi hủy đặt giữ thành công, hệ thống hiển thị tiêu đề “Hủy đặt giữ thành công”.
+- Tên tài liệu, mã phiếu và trạng thái “Đã hủy” được hiển thị trong màn hình xác nhận.
+- Phiếu đặt giữ vừa bị hủy không còn xuất hiện trong danh sách Sách đã đặt giữ.
+
+2) Khi người dùng chưa xác nhận:
+
+- Hộp thoại xác nhận được hiển thị trước khi hệ thống thực hiện thao tác hủy.
+- Nếu người dùng chọn không xác nhận hoặc đóng hộp thoại, dữ liệu đặt giữ không thay đổi.
+
+3) Khi người dùng quay lại danh sách:
+
+- Hệ thống hiển thị các phiếu đặt giữ vẫn còn hiệu lực.
+- Nếu không còn phiếu nào, hệ thống hiển thị thông báo “Chưa có sách đặt giữ” và hướng dẫn người dùng tra cứu tài liệu.
+
+4) Khi người dùng tiếp tục tra cứu:
+
+- Hệ thống chuyển sang màn hình Tra cứu tài liệu để người dùng chọn tài liệu khác.
