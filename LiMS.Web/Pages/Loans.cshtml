@@ -1,0 +1,56 @@
+@page
+@model LoansModel
+@{
+    ViewData["Title"] = "Thông tin tình trạng sách";
+}
+
+<div class="page-head"><div><span class="eyebrow">LƯU THÔNG</span><h1>Thông tin tình trạng sách</h1><p>Theo dõi tình trạng mượn, ngày trả và thời hạn của từng cuốn sách.</p></div></div>
+@if (Model.SuccessMessage is not null)
+{
+    <div class="form-message success" role="status">@Model.SuccessMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="form-message error" role="alert">@Model.ErrorMessage</div>
+}
+<section class="loan-table">
+    <div class="table-head"><span>Mã phiếu / Tên sách</span><span>Ngày mượn</span><span>Ngày hết hạn</span><span>Trạng thái</span><span>Thao tác</span></div>
+    @if (Model.Loans.Count == 0)
+    {
+        <div class="empty-state"><strong>Chưa có phiếu mượn</strong><p>Phiếu mượn của bạn sẽ hiển thị tại đây.</p></div>
+    }
+    @foreach (var loan in Model.Loans)
+    {
+        var isActive = LoansModel.IsActive(loan);
+        var isOverdue = LoansModel.IsOverdue(loan);
+        var isReturned = loan.ReturnedDate is not null || loan.Status is "Returned" or "Đã trả";
+        <div class="table-row">
+            <div><strong>@loan.Book?.Title</strong><small>Mã phiếu: @loan.Id</small></div>
+            <span>@LoansModel.FormatDate(loan.BorrowedDate)</span>
+            <span class="@(isOverdue ? "due-date" : "")">@LoansModel.FormatDate(loan.DueDate)</span>
+            <span>
+                <b class="status @(isOverdue ? "red" : isActive ? "blue" : "green")">@LoansModel.DisplayStatus(loan)</b>
+                @if (isOverdue)
+                {
+                    <small class="overdue-warning">Vui lòng liên hệ thư viện để xử lý quá hạn.</small>
+                }
+            </span>
+            <span>
+                @if (!isReturned && LoansModel.CanRenew(loan))
+                {
+                    <form method="post" asp-page-handler="Renew" asp-route-loanId="@loan.Id">
+                        <button class="secondary compact" type="submit">Gia hạn</button>
+                    </form>
+                }
+                else if (isActive)
+                {
+                    <span class="small-muted">Không đủ điều kiện</span>
+                }
+                else
+                {
+                    <span class="small-muted">—</span>
+                }
+            </span>
+        </div>
+    }
+</section>

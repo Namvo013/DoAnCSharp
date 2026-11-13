@@ -1,0 +1,49 @@
+@page
+@model ReservationsModel
+@{
+    ViewData["Title"] = "Sách đã đặt giữ";
+}
+
+<div class="page-head"><div><span class="eyebrow">ĐẶT GIỮ</span><h1>Sách đã đặt giữ</h1></div></div>
+@if (Model.SuccessMessage is not null)
+{
+    <div class="form-message success" role="status">@Model.SuccessMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="form-message error" role="alert">@Model.ErrorMessage</div>
+}
+<section class="reservation-list">
+    @if (Model.Reservations.Count == 0)
+    {
+        <div class="empty-state">
+            <strong>Chưa có sách đặt giữ</strong>
+            <p>Tra cứu tài liệu để đặt giữ sách đang được mượn.</p>
+            <a class="primary" asp-page="/Catalog">Tra cứu tài liệu</a>
+        </div>
+    }
+    @foreach (var reservation in Model.Reservations)
+    {
+        var canCancel = reservation.Status is "Pending" or "ReadyForPickup" or "Đang chờ" or "Sẵn sàng nhận";
+        var isExpired = reservation.ExpiryDate <= DateTimeOffset.UtcNow
+            && reservation.Status is "Pending" or "ReadyForPickup";
+        <article>
+            <div class="reservation-code">◷</div>
+            <div><strong>@reservation.Book?.Title</strong><span>Mã phiếu: @reservation.Id</span></div>
+            <div><small>Ngày đặt</small><strong>@VietnamTime.Convert(reservation.CreatedDate).ToString("dd/MM/yyyy")</strong></div>
+            <div><small>Hết hiệu lực</small><strong>@VietnamTime.Convert(reservation.ExpiryDate).ToString("dd/MM/yyyy")</strong></div>
+            <span class="status @(isExpired ? "red" : "amber")">@(isExpired ? "Hết hiệu lực" : reservation.Status)</span>
+            @if (canCancel && !isExpired)
+            {
+                <form method="post" asp-page-handler="Cancel" asp-route-reservationId="@reservation.Id"
+                      onsubmit="return confirm('Xác nhận hủy phiếu đặt giữ này?');">
+                    <button class="danger-light compact" type="submit">Hủy đặt giữ</button>
+                </form>
+            }
+            else
+            {
+                <span class="small-muted">Không thể hủy</span>
+            }
+        </article>
+    }
+</section>

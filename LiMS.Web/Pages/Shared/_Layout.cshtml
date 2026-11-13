@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - LiMS</title>
+    <link rel="stylesheet" href="~/css/lims.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/lims-overrides.css" asp-append-version="true" />
+</head>
+<body>
+    @{
+        var studentCode = Context.Session.GetString("StudentCode");
+        var fullName = Context.Session.GetString("FullName");
+        var signedIn = !string.IsNullOrEmpty(studentCode);
+    }
+    @if (signedIn)
+    {
+        <header class="topbar">
+            <a class="brand" asp-page="/Home">
+                <div class="brand-mark">Li</div>
+                <div><strong>LiMS</strong><small>Thư viện Đại học Sài Gòn</small></div>
+            </a>
+            <div class="top-actions">
+                <div class="avatar">@(fullName?.FirstOrDefault() ?? 'V')</div>
+                <div class="top-user"><strong>@fullName</strong><small>@studentCode</small></div>
+            </div>
+        </header>
+        <div class="layout">
+            <aside class="sidebar">
+                <a class="nav-item @(Context.Request.Path == "/Home" ? "active" : "")" asp-page="/Home">⌂ <span>Trang chủ</span></a>
+                <a class="nav-item @(Context.Request.Path == "/Catalog" ? "active" : "")" asp-page="/Catalog">⌕ <span>Tra cứu tài liệu</span></a>
+                <a class="nav-item @(Context.Request.Path == "/Loans" ? "active" : "")" asp-page="/Loans">▣ <span>Thông tin tình trạng sách</span></a>
+                <a class="nav-item @(Context.Request.Path == "/Reservations" ? "active" : "")" asp-page="/Reservations">◷ <span>Sách đặt giữ</span></a>
+                <a class="nav-item @(Context.Request.Path == "/Notifications" ? "active" : "")" asp-page="/Notifications">♧ <span>Thông báo</span></a>
+                <a class="nav-item @(Context.Request.Path == "/Guidelines" ? "active" : "")" asp-page="/Guidelines">▤ <span>Hướng dẫn &amp; Nội quy</span></a>
+                <a class="nav-item @(Context.Request.Path == "/Renewal" ? "active" : "")" asp-page="/Renewal">◷ <span>Gia hạn trực tuyến</span></a>
+                <a class="nav-item @(Context.Request.Path == "/PurchaseProposal" ? "active" : "")" asp-page="/PurchaseProposal">＋ <span>Đề xuất mua sách</span></a>
+                <a class="nav-item @(Context.Request.Path == "/Profile" ? "active" : "")" asp-page="/Profile">♙ <span>Thông tin cá nhân</span></a>
+                <form method="post" asp-page="/Index" asp-page-handler="Logout">
+                    <button class="nav-item logout" type="submit">↪ <span>Đăng xuất</span></button>
+                </form>
+            </aside>
+            <main>@RenderBody()</main>
+        </div>
+    }
+    else
+    {
+        @RenderBody()
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

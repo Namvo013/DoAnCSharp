@@ -1,0 +1,54 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div class="login-page">
+    <section class="login-art">
+        <div class="login-brand">
+            <div class="brand-mark">Li</div>
+            <div><strong>LiMS</strong><small>Library Management System</small></div>
+        </div>
+        <div class="art-copy">
+            <span>THƯ VIỆN SỐ</span>
+            <h1>Tri thức mở ra<br />những cánh cửa mới.</h1>
+            <p>Tra cứu, đặt giữ và quản lý tài liệu trực tuyến mọi lúc, mọi nơi.</p>
+        </div>
+    </section>
+    <section class="login-form-wrap">
+        <form method="post" class="login-card">
+            <h2>Đăng nhập</h2>
+            <p>Chào mừng bạn quay trở lại thư viện.</p>
+            <div asp-validation-summary="ModelOnly" class="login-error show" role="alert"></div>
+            <label asp-for="Username">Mã sinh viên / Tài khoản
+                <input asp-for="Username" autocomplete="username" required placeholder="Nhập mã sinh viên hoặc email" />
+            </label>
+            <label asp-for="Password">Mật khẩu
+                <span class="password-wrap">
+                    <input asp-for="Password" type="password" autocomplete="current-password" required minlength="6" maxlength="50" placeholder="Nhập mật khẩu" />
+                    <button type="button" class="password-toggle" aria-label="Hiện mật khẩu" aria-pressed="false">Hiện</button>
+                </span>
+            </label>
+            <div class="form-row">
+                <label class="check"><input asp-for="RememberMe" /> Ghi nhớ đăng nhập</label>
+                <a asp-page="/ForgotPassword">Quên mật khẩu?</a>
+            </div>
+            <button class="primary full" type="submit">Đăng nhập</button>
+        </form>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        const passwordInput = document.getElementById("Password");
+        const passwordToggle = document.querySelector(".password-toggle");
+        passwordToggle?.addEventListener("click", () => {
+            const showPassword = passwordInput.type === "password";
+            passwordInput.type = showPassword ? "text" : "password";
+            passwordToggle.textContent = showPassword ? "Ẩn" : "Hiện";
+            passwordToggle.setAttribute("aria-label", showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu");
+            passwordToggle.setAttribute("aria-pressed", String(showPassword));
+        });
+    </script>
+}
