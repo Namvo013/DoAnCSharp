@@ -1,0 +1,277 @@
+@baseUrl = http://localhost:5107
+@token = paste-access-token-here
+@readerCard = reader-card-number
+@barcode = book-copy-barcode
+
+### Health and public catalog
+GET {{baseUrl}}/api/library/health
+
+###
+GET {{baseUrl}}/api/library/books
+
+### Login - copy accessToken from the response into @token
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "replace-me"
+}
+
+### Change password
+POST {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "replace-me",
+  "newPassword": "replace-with-strong-password"
+}
+
+### Reader account data
+GET {{baseUrl}}/api/library/users/{{readerCard}}
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/library/loans/{{readerCard}}
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/library/reservations/{{readerCard}}
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/library/notifications/{{readerCard}}
+Authorization: Bearer {{token}}
+
+### Reader reservations
+POST {{baseUrl}}/api/library/reservations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookId": 1
+}
+
+###
+GET {{baseUrl}}/api/library/reservation/1
+Authorization: Bearer {{token}}
+
+###
+DELETE {{baseUrl}}/api/library/reservations/1
+Authorization: Bearer {{token}}
+
+### Reader purchase proposals
+GET {{baseUrl}}/api/library/proposals
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/library/proposals/1
+Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/api/library/proposals
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Tên sách đề xuất",
+  "author": "Tác giả",
+  "reason": "Lý do đề xuất mua"
+}
+
+### Reader renews own loan
+POST {{baseUrl}}/api/library/loans/1/renew
+Authorization: Bearer {{token}}
+
+### Admin dashboard
+GET {{baseUrl}}/api/admin/dashboard
+Authorization: Bearer {{token}}
+
+### Books and physical copies
+GET {{baseUrl}}/api/admin/books
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/admin/books?search=ISBN-or-title
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/admin/books/1
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/admin/books/1/copies
+Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/api/admin/books
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "category": "Công nghệ thông tin",
+  "title": "Tên sách",
+  "author": "Tác giả",
+  "isbn": null,
+  "publisher": "Nhà xuất bản",
+  "publishYear": 2025,
+  "shelfLocation": "A-01",
+  "description": null,
+  "initialCopies": 2
+}
+
+###
+PUT {{baseUrl}}/api/admin/books/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "category": "Công nghệ thông tin",
+  "title": "Tên sách",
+  "author": "Tác giả",
+  "isbn": null,
+  "publisher": "Nhà xuất bản",
+  "publishYear": 2025,
+  "shelfLocation": "A-01",
+  "description": null,
+  "isActive": true
+}
+
+###
+POST {{baseUrl}}/api/admin/books/1/copies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "quantity": 2,
+  "barcodePrefix": "B000001"
+}
+
+###
+PUT {{baseUrl}}/api/admin/copies/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "Maintenance"
+}
+
+### Readers
+GET {{baseUrl}}/api/admin/readers?search=reader
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/admin/readers/1
+Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/api/admin/readers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "reader01",
+  "initialPassword": "replace-with-strong-password",
+  "email": "reader01@example.local",
+  "fullName": "Nguyen Van A",
+  "phone": null,
+  "cardNo": "LIB-0001",
+  "borrowLimit": 5,
+  "cardValidityMonths": 48
+}
+
+###
+PUT {{baseUrl}}/api/admin/readers/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Nguyen Van A",
+  "email": "reader01@example.local",
+  "phone": null,
+  "cardStatus": "Active",
+  "borrowLimit": 5,
+  "cardExpiryDate": "2030-01-01",
+  "isActive": true
+}
+
+### Circulation
+GET {{baseUrl}}/api/admin/loans
+Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/api/admin/loans/1
+Authorization: Bearer {{token}}
+
+###
+POST {{baseUrl}}/api/admin/loans/checkout
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "readerCardNo": "{{readerCard}}",
+  "barcode": "{{barcode}}",
+  "reservationId": null
+}
+
+###
+POST {{baseUrl}}/api/admin/loans/return
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "barcode": "{{barcode}}",
+  "fineReason": null,
+  "additionalFineAmount": 0
+}
+
+###
+POST {{baseUrl}}/api/admin/loans/1/renew
+Authorization: Bearer {{token}}
+
+### Fines
+GET {{baseUrl}}/api/admin/fines
+Authorization: Bearer {{token}}
+
+###
+PUT {{baseUrl}}/api/admin/fines/1/collect
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "amount": 0,
+  "reason": "Thu tại quầy"
+}
+
+### Purchase proposals
+GET {{baseUrl}}/api/admin/proposals
+Authorization: Bearer {{token}}
+
+###
+PUT {{baseUrl}}/api/admin/proposals/1/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "decision": "Approved",
+  "note": "Đã duyệt"
+}
+
+### Admin-only settings and audit trail
+GET {{baseUrl}}/api/admin/settings
+Authorization: Bearer {{token}}
+
+###
+PUT {{baseUrl}}/api/admin/settings/LoanDurationDays
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "value": "14",
+  "description": "Số ngày mượn"
+}
+
+###
+GET {{baseUrl}}/api/admin/activity-logs?page=1&pageSize=50
+Authorization: Bearer {{token}}

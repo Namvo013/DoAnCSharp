@@ -1,0 +1,7 @@
+namespace LiMS.Api.Models.Legacy;
+
+public class LegacyUser { public int Id {get;set;} public string StudentCode {get;set;} = ""; public string FullName {get;set;} = ""; public string? Email {get;set;} public string PasswordHash {get;set;} = ""; public string Role {get;set;} = "Person"; public bool IsActive {get;set;} }
+public class LegacyBook { public int Id {get;set;} public string Title {get;set;} = ""; public string? Author {get;set;} public string? Isbn {get;set;} public string? Category {get;set;} public string? Publisher {get;set;} public int? PublishedYear {get;set;} public int TotalCopies {get;set;} public int AvailableCopies {get;set;} }
+public class LegacyLoan { public int Id {get;set;} public int UserId {get;set;} public int BookId {get;set;} public DateTime BorrowedDate {get;set;} public DateTime DueDate {get;set;} public DateTime? ReturnedDate {get;set;} public string Status {get;set;} = ""; public int RenewalCount {get;set;} public LegacyBook? Book {get;set;} }
+public class LegacyReservation { public int Id {get;set;} public int UserId {get;set;} public int BookId {get;set;} public DateTime CreatedDate {get;set;} public DateTime ExpiryDate {get;set;} public string Status {get;set;} = ""; public LegacyBook? Book {get;set;} }
+public class LegacyNotification { public int Id {get;set;} public int UserId {get;set;} public string Message {get;set;} = ""; public DateTime CreatedAt {get;set;} public bool IsRead {get;set;} }
