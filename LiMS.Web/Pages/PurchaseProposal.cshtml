@@ -1,0 +1,20 @@
+@page
+@model PurchaseProposalModel
+@{
+    ViewData["Title"] = "Đề xuất mua sách";
+}
+
+<div class="page-head"><div><span class="eyebrow">ĐỀ XUẤT</span><h1>Gửi đề xuất mua sách</h1><p>Đề xuất tài liệu mới để thư viện xem xét bổ sung.</p></div></div>
+<section class="proposal-layout">
+    <div class="proposal-form">
+        <div class="proposal-section-title"><span>01</span><div><strong>Thông tin tài liệu</strong><small>Nội dung dự kiến cho đề xuất</small></div></div>
+        <div class="form-grid">
+            <label>Tên tài liệu<input disabled placeholder="Tên sách" /></label>
+            <label>Tác giả<input disabled placeholder="Tên tác giả" /></label>
+            <label>Nhà xuất bản<input disabled placeholder="Nhà xuất bản" /></label>
+            <label>ISBN<input disabled placeholder="ISBN" /></label>
+        </div>
+        <p class="small-muted">Gửi đề xuất sẽ được bật khi API lưu và quản lý đề xuất được triển khai. Chưa có dữ liệu nào được gửi.</p>
+    </div>
+    <aside class="proposal-guide"><h2>Quy trình tiếp nhận</h2><ol><li><strong>Độc giả gửi đề xuất</strong><span>Điền đầy đủ thông tin tài liệu.</span></li><li><strong>Thư viện thẩm định</strong><span>Kiểm tra nhu cầu và khả năng bổ sung.</span></li><li><strong>Thông báo kết quả</strong><span>Kết quả sẽ được gửi qua mục Thông báo.</span></li></ol></aside>
+</section>

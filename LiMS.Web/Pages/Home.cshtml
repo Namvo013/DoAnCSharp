@@ -1,0 +1,53 @@
+@page
+@model HomeModel
+@{
+    ViewData["Title"] = "Tổng quan";
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow">TỔNG QUAN</span>
+        <h1>Xin chào, @Model.FirstName!</h1>
+        <p>Hôm nay, thư viện có gì dành cho bạn?</p>
+    </div>
+    <div class="date">@Model.TodayWeekday<br /><strong>@Model.TodayLabel</strong></div>
+</div>
+
+<section class="stats">
+    <article><div class="stat-icon blue">▣</div><div><span>Đang mượn</span><strong>@Model.ActiveLoans.Count</strong><small>phiếu đang hoạt động</small></div></article>
+    <article><div class="stat-icon amber">◷</div><div><span>Tổng sách</span><strong>@Model.Books.Count</strong><small>tài liệu trong thư viện</small></div></article>
+    <article><div class="stat-icon red">⌕</div><div><span>Mã độc giả</span><strong class="student-code">@Model.StudentCode</strong><small>tài khoản đang đăng nhập</small></div></article>
+</section>
+
+<section class="panel">
+    <div class="panel-head"><h2>Phiếu mượn đang hoạt động</h2><a asp-page="/Loans">Xem tất cả →</a></div>
+    @if (Model.ActiveLoans.Count == 0)
+    {
+        <div class="empty-state"><strong>Chưa có phiếu mượn đang hoạt động</strong><p>Các phiếu mượn sẽ hiển thị tại đây.</p></div>
+    }
+    else
+    {
+        @foreach (var loan in Model.ActiveLoans)
+        {
+            <div class="loan-row">
+                <div class="cover csharp"><strong>@loan.Book?.Title</strong><small>@loan.Book?.Author</small></div>
+                <div class="loan-info"><strong>@loan.Book?.Title</strong><span>Phiếu mượn #@loan.Id</span><div class="progress"><i style="width:68%"></i></div></div>
+                <div class="due"><small>Hạn trả</small><strong>@VietnamTime.Convert(loan.DueDate).ToString("dd/MM/yyyy")</strong><em>@Model.RemainingDays(loan.DueDate)</em></div>
+                <a class="secondary" asp-page="/Loans">Chi tiết</a>
+            </div>
+        }
+    }
+</section>
+
+<section class="panel recommendations">
+    <div class="panel-head"><h2>Sách trong thư viện</h2><a asp-page="/Catalog">Tra cứu tài liệu →</a></div>
+    <div class="book-grid">
+        @foreach (var book in Model.Books.Take(4))
+        {
+            <article class="book-card">
+                <div class="cover clean"><strong>@book.Title</strong><small>@book.Author</small></div>
+                <div><span class="tag">@book.Category</span><h3>@book.Title</h3><p>@book.Author</p><small class="availability">@book.AvailableCopies bản có thể mượn</small></div>
+            </article>
+        }
+    </div>
+</section>

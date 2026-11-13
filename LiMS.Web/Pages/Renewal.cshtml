@@ -1,0 +1,44 @@
+@page
+@model RenewalModel
+@{
+    ViewData["Title"] = "Gia hạn trực tuyến";
+}
+
+<div class="page-head"><div><span class="eyebrow">LƯU THÔNG</span><h1>Gia hạn mượn sách trực tuyến</h1><p>Theo dõi phiếu mượn và điều kiện gia hạn.</p></div></div>
+@if (Model.SuccessMessage is not null)
+{
+    <div class="form-message success" role="status">@Model.SuccessMessage</div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="form-message error" role="alert">@Model.ErrorMessage</div>
+}
+<section class="panel">
+    <div class="panel-head"><h2>Phiếu mượn đang hoạt động</h2><span class="service-badge">Theo điều kiện của thư viện</span></div>
+    @if (Model.ActiveLoans.Count == 0)
+    {
+        <div class="empty-state"><strong>Không có phiếu mượn đang hoạt động</strong></div>
+    }
+    @foreach (var loan in Model.ActiveLoans)
+    {
+        var overdue = LoansModel.IsOverdue(loan);
+        var canRenew = LoansModel.CanRenew(loan);
+        <div class="loan-row">
+            <div class="cover csharp"><strong>@loan.Book?.Title</strong><small>@loan.Book?.Author</small></div>
+            <div class="loan-info"><strong>@loan.Book?.Title</strong><span>Mã phiếu: @loan.Id</span></div>
+            <div class="due"><small>Hạn trả hiện tại</small><strong class="@(overdue ? "due-date" : "")">@LoansModel.FormatDate(loan.DueDate)</strong>@if (overdue) { <em>Đã quá hạn</em> }</div>
+            <div class="due"><small>Lượt gia hạn</small><strong>@loan.RenewalCount/1 lần</strong></div>
+            @if (canRenew)
+            {
+                <form method="post" asp-page-handler="Renew" asp-route-loanId="@loan.Id">
+                    <button class="primary" type="submit">Gia hạn</button>
+                </form>
+            }
+            else
+            {
+                <button class="secondary" disabled>@(overdue ? "Đã quá hạn" : "Hết lượt gia hạn")</button>
+            }
+        </div>
+    }
+    <p class="small-muted">Phiếu quá hạn, đã trả, có đặt giữ ưu tiên hoặc hết lượt gia hạn sẽ không thể gia hạn. API sẽ kiểm tra lại điều kiện trước khi cập nhật.</p>
+</section>
