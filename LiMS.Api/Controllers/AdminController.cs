@@ -86,12 +86,13 @@ public sealed class AdminController(
     }
 
     [HttpGet("readers")]
-    [EndpointSummary("Search reader accounts and cards")]
+    [EndpointSummary("Search and filter reader accounts and cards")]
     [ProducesResponseType<IReadOnlyList<ReaderResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ReaderResponse>>> Readers(
-        [FromQuery] string? search,
-        CancellationToken cancellationToken) =>
-        Ok(await adminService.GetReadersAsync(search, cancellationToken));
+    [FromQuery] string? search,
+    [FromQuery] string? cardStatus,
+    CancellationToken cancellationToken) =>
+    Ok(await adminService.GetReadersAsync(search, cardStatus, cancellationToken));
 
     [HttpGet("readers/{id:int}")]
     [EndpointSummary("Get one reader")]

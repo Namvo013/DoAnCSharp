@@ -217,18 +217,25 @@ public sealed class AdminService(
     }
 
     public async Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(
-        string? search,
-        CancellationToken cancellationToken)
+    string? search,
+    string? cardStatus,
+    CancellationToken cancellationToken)
     {
         var query = db.Readers.AsNoTracking().Include(reader => reader.Account).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
             query = query.Where(reader =>
-                reader.CardNo.Contains(term)
-                || reader.Account.Username.Contains(term)
-                || reader.Account.FullName.Contains(term)
-                || reader.Account.Email.Contains(term));
+     reader.CardNo.Contains(term)
+     || reader.Account.Username.Contains(term)
+     || reader.Account.FullName.Contains(term)
+     || reader.Account.Email.Contains(term)
+     || (reader.Account.Phone != null && reader.Account.Phone.Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(cardStatus))
+        {
+            query = query.Where(reader => reader.CardStatus == cardStatus);
         }
 
         var readers = await query.OrderBy(reader => reader.Account.FullName).ToListAsync(cancellationToken);

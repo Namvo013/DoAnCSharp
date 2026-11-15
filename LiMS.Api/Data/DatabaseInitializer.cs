@@ -10,6 +10,7 @@ public static class DatabaseInitializer
 {
     private const string ImportMarker = "LegacyImportCompleted";
 
+
     public static async Task InitializeAsync(
         IServiceProvider services,
         IConfiguration configuration,
@@ -18,21 +19,34 @@ public static class DatabaseInitializer
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<LiMSDbContext>();
+
         await db.Database.MigrateAsync(cancellationToken);
 
         await SeedBusinessConfigAsync(db, cancellationToken);
+
         await SeedBootstrapAdminAsync(
             db,
             scope.ServiceProvider.GetRequiredService<IPasswordHasher<Account>>(),
             configuration,
             logger,
             cancellationToken);
-        await ImportLegacyDataAsync(
-            db,
-            scope.ServiceProvider.GetRequiredService<LegacyLiMSDbContext>(),
-            scope.ServiceProvider.GetRequiredService<IPasswordHasher<Account>>(),
-            logger,
-            cancellationToken);
+
+        var legacyConnectionString = configuration.GetConnectionString("LegacyLiMS");
+
+        if (!string.IsNullOrWhiteSpace(legacyConnectionString))
+        {
+            await ImportLegacyDataAsync(
+                db,
+                scope.ServiceProvider.GetRequiredService<LegacyLiMSDbContext>(),
+                scope.ServiceProvider.GetRequiredService<IPasswordHasher<Account>>(),
+                logger,
+                cancellationToken);
+        }
+        else
+        {
+            logger.LogInformation(
+                "Legacy database is not configured. Skipping legacy data import.");
+        }
     }
 
     private static async Task SeedBusinessConfigAsync(

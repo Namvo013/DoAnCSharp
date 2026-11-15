@@ -37,6 +37,14 @@ public sealed class AdminMainForm : Form
     private readonly DataGridView _databaseBackupsGrid = CreateGrid();
     private string _bookSearch = "";
     private string _readerSearch = "";
+    private readonly ComboBox _readerStatusFilter = new()
+    {
+        DropDownStyle = ComboBoxStyle.DropDownList,
+        Width = 165,
+        Height = 34,
+        Font = new Font("Segoe UI", 9.5F),
+        Margin = new Padding(12, 3, 0, 3)
+    };
     private readonly Dictionary<string, Label> _dashboardValues = [];
     private readonly Label _dashboardSummary = new();
     private readonly Label _popularBooks = new();
@@ -167,20 +175,49 @@ public sealed class AdminMainForm : Form
     private void AddReadersPage()
     {
         var actions = new List<(string Title, Func<Task> Action)>
-        {
-            ("Tìm độc giả", SearchReadersAsync),
-            ("Thêm độc giả", CreateReaderAsync),
-            ("Cập nhật thẻ", UpdateReaderAsync),
-            ("Khóa thẻ/tài khoản", DeactivateReaderAsync)
-        };
+    {
+        ("Tìm độc giả", SearchReadersAsync),
+        ("Thêm độc giả", CreateReaderAsync),
+        ("Cập nhật thẻ", UpdateReaderAsync),
+        ("Khóa thẻ/tài khoản", DeactivateReaderAsync)
+    };
+
         if (_user.Role == "Admin")
             actions.Add(("Đặt lại mật khẩu", ResetReaderPasswordAsync));
+
+        _readerStatusFilter.Items.Clear();
+        _readerStatusFilter.Items.AddRange(
+            ["Tất cả trạng thái", "Đang hoạt động", "Ngừng hoạt động"]);
+
+        _readerStatusFilter.SelectedIndex = 0;
 
         var page = CreateGridPage(
             "Độc giả",
             _readersGrid,
             LoadReadersAsync,
             actions.ToArray());
+
+        var layout = page.Controls.OfType<TableLayoutPanel>().First();
+        var toolbar = layout.GetControlFromPosition(0, 1) as FlowLayoutPanel;
+
+        if (toolbar != null)
+        {
+            var filterLabel = new Label
+            {
+                Text = "Trạng thái thẻ:",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = TextColor,
+                Margin = new Padding(12, 10, 5, 0)
+            };
+
+            toolbar.Controls.Add(filterLabel);
+            toolbar.Controls.Add(_readerStatusFilter);
+        }
+
+        _readerStatusFilter.SelectedIndexChanged += async (_, _) =>
+            await RunAsync(LoadReadersAsync);
+
         _tabs.TabPages.Add(page);
     }
 
@@ -829,8 +866,22 @@ public sealed class AdminMainForm : Form
     private async Task LoadBooksAsync() =>
         _booksGrid.DataSource = (await _api.GetBooksAsync(_bookSearch, CancellationToken.None)).ToList();
 
-    private async Task LoadReadersAsync() =>
-        _readersGrid.DataSource = (await _api.GetReadersAsync(_readerSearch, CancellationToken.None)).ToList();
+    private async Task LoadReadersAsync()
+    {
+        var cardStatus = _readerStatusFilter.SelectedIndex switch
+        {
+            1 => "Active",
+            2 => "Inactive",
+            _ => null
+        };
+
+        _readersGrid.DataSource = (
+            await _api.GetReadersAsync(
+                _readerSearch,
+                cardStatus,
+                CancellationToken.None)
+        ).ToList();
+    }
 
     private async Task SearchBooksAsync()
     {
@@ -843,7 +894,7 @@ public sealed class AdminMainForm : Form
 
     private async Task SearchReadersAsync()
     {
-        var values = Prompt("Tìm độc giả", ("Mã thẻ, tài khoản, họ tên hoặc email", _readerSearch, false));
+        var values = Prompt("Tìm độc giả", ("Mã thẻ, tài khoản, họ tên, email hoặc số điện thoại", _readerSearch, false));
         if (values is null)
             return;
         _readerSearch = values[0];
