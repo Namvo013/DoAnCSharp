@@ -16,8 +16,20 @@
 @if (Model.Book is not null)
 {
     var book = Model.Book;
+    var coverImageUrl = Model.GetAbsoluteBookCoverUrl(book.CoverImageUrl);
     <section class="detail">
-        <aside><div class="cover large clean"><strong>@book.Title</strong><small>@book.Author</small></div></aside>
+        <aside>
+            <div class="cover large clean">
+                @if (coverImageUrl is not null)
+                {
+                    <img class="cover-image" src="@coverImageUrl" alt="Bìa sách @book.Title" />
+                }
+                else
+                {
+                    <strong>@book.Title</strong><small>@book.Author</small>
+                }
+            </div>
+        </aside>
         <div class="detail-main">
             <span class="tag">@book.Category</span>
             <h1>@book.Title</h1>

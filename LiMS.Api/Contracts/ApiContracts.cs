@@ -47,10 +47,18 @@ public sealed record BookResponse(
     int TotalCopies,
     int AvailableCopies,
     string? ShelfLocation,
-    string? Description);
+    string? Description,
+    string? CoverImageUrl);
 
 /// <summary>Barcode, status, and parent book for one physical copy.</summary>
 public sealed record BookCopyResponse(int Id, int BookId, string Barcode, string Status);
+
+/// <summary>Image file uploaded as the cover of a book.</summary>
+public sealed record UploadBookCoverRequest
+{
+    [Required]
+    public required IFormFile File { get; init; }
+}
 
 /// <summary>Book metadata and the number of copies to register.</summary>
 public sealed record CreateBookRequest

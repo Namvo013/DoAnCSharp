@@ -11,6 +11,11 @@ public sealed class LibraryApiClient(
 {
     private readonly HttpClient _client = httpClientFactory.CreateClient("LiMS.Api");
 
+    public string? GetAbsoluteBookCoverUrl(string? coverImageUrl) =>
+        string.IsNullOrWhiteSpace(coverImageUrl)
+            ? null
+            : new Uri(_client.BaseAddress!, coverImageUrl).AbsoluteUri;
+
     public async Task<ApiUser?> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         using var message = CreateRequest(HttpMethod.Post, "api/auth/login");

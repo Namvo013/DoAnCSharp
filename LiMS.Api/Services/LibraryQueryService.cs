@@ -17,6 +17,18 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             .Select(MapBook())
             .ToListAsync(cancellationToken);
 
+    public async Task<BookCoverData?> GetBookCoverAsync(int bookId, CancellationToken cancellationToken)
+    {
+        var cover = await db.Books.AsNoTracking()
+            .Where(book => book.BookId == bookId)
+            .Select(book => new { book.CoverImageData, book.CoverImageContentType })
+            .SingleOrDefaultAsync(cancellationToken);
+        return cover?.CoverImageData is { Length: > 0 } data
+            && cover.CoverImageContentType is { } contentType
+                ? new BookCoverData(data, contentType)
+                : null;
+    }
+
     public async Task<ReaderProfileData?> GetReaderProfileAsync(
         string studentCode,
         CancellationToken cancellationToken)
@@ -66,7 +78,10 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
                     loan.Copy.Book.Copies.Count,
                     loan.Copy.Book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
                     loan.Copy.Book.ShelfLocation,
-                    loan.Copy.Book.Description)
+                    loan.Copy.Book.Description,
+                    loan.Copy.Book.CoverImageContentType == null
+                        ? null
+                        : "/api/library/books/" + loan.Copy.Book.BookId + "/cover")
             })
             .ToListAsync(cancellationToken);
 
@@ -107,7 +122,10 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
                     item.Book.Copies.Count,
                     item.Book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
                     item.Book.ShelfLocation,
-                    item.Book.Description)
+                    item.Book.Description,
+                    item.Book.CoverImageContentType == null
+                        ? null
+                        : "/api/library/books/" + item.Book.BookId + "/cover")
             })
             .ToListAsync(cancellationToken);
 
@@ -148,7 +166,10 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             book.Copies.Count,
             book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
             book.ShelfLocation,
-            book.Description);
+            book.Description,
+            book.CoverImageContentType == null
+                ? null
+                : "/api/library/books/" + book.BookId + "/cover");
 
     private static DateTimeOffset ToUtcOffset(DateTime value) =>
         new(DateTime.SpecifyKind(value, DateTimeKind.Utc));

@@ -22,7 +22,8 @@ public sealed record ApiBook(
     int TotalCopies,
     int AvailableCopies,
     string? ShelfLocation = null,
-    string? Description = null);
+    string? Description = null,
+    string? CoverImageUrl = null);
 
 public sealed record ApiLoan(
     int Id,

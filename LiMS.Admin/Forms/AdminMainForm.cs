@@ -158,6 +158,7 @@ public sealed class AdminMainForm : Form
             ("Tìm đầu sách", SearchBooksAsync),
             ("Thêm đầu sách", CreateBookAsync),
             ("Sửa đầu sách", EditBookAsync),
+            ("Thêm/cập nhật ảnh bìa", UploadBookCoverAsync),
             ("Ngừng kinh doanh", DeactivateBookAsync),
             ("Quản lý bản sao", ManageCopiesAsync),
             ("Thêm bản sao", AddCopiesAsync));
@@ -976,6 +977,32 @@ public sealed class AdminMainForm : Form
         await LoadBooksAsync();
     }
 
+    private async Task UploadBookCoverAsync()
+    {
+        var book = Selected<BookResponse>(_booksGrid);
+        if (book is null)
+        {
+            MessageBox.Show(this, "Hãy chọn một đầu sách trước.", "Chưa chọn sách",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var dialog = new OpenFileDialog
+        {
+            Title = $"Chọn ảnh bìa cho “{book.Title}”",
+            Filter = "Ảnh bìa (*.jpg;*.jpeg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+            return;
+
+        await _api.UploadBookCoverAsync(book.Id, dialog.FileName, CancellationToken.None);
+        await LoadBooksAsync();
+        MessageBox.Show(this, "Đã lưu ảnh bìa cho đầu sách.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
     private async Task DeactivateBookAsync()
     {
         var book = Selected<BookResponse>(_booksGrid);
@@ -1322,7 +1349,7 @@ public sealed class AdminMainForm : Form
     private static Button CreateActionButton(string title, bool destructive = false)
     {
         var primary = !destructive && title is
-            "Thêm đầu sách" or "Thêm độc giả" or "Thêm bản sao"
+            "Thêm đầu sách" or "Thêm độc giả" or "Thêm bản sao" or "Thêm/cập nhật ảnh bìa"
             or "Cho mượn / quét barcode" or "Nhận trả / quét barcode"
             or "Ghi nhận thanh toán" or "Duyệt đề xuất" or "Gia hạn phiếu chọn";
         var button = new Button
@@ -1390,6 +1417,7 @@ public sealed class AdminMainForm : Form
             ["AvailableCopies"] = "Bản sẵn sàng",
             ["ShelfLocation"] = "Vị trí kệ",
             ["Description"] = "Mô tả",
+            ["CoverImageUrl"] = "Ảnh bìa",
             ["Barcode"] = "Barcode",
             ["Status"] = "Trạng thái",
             ["ReaderName"] = "Độc giả",
@@ -1444,6 +1472,14 @@ public sealed class AdminMainForm : Form
 
     private static void GridCellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
     {
+        if (sender is DataGridView grid
+            && grid.Columns[e.ColumnIndex].DataPropertyName == nameof(BookResponse.CoverImageUrl))
+        {
+            e.Value = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? "Chưa có ảnh" : "Đã có ảnh";
+            e.FormattingApplied = true;
+            return;
+        }
+
         if (e.Value is not string status)
             return;
 

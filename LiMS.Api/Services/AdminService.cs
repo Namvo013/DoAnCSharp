@@ -13,6 +13,8 @@ public sealed class AdminService(
     IPasswordHasher<Account> passwordHasher,
     IReservationQueueService reservationQueue) : IAdminService
 {
+    private const int MaxBookCoverSizeBytes = 5 * 1024 * 1024;
+
     private static readonly HashSet<string> AllowedCopyStatuses =
         new(StringComparer.OrdinalIgnoreCase) { "Available", "Maintenance", "Lost" };
 
@@ -53,7 +55,10 @@ public sealed class AdminService(
                 book.Copies.Count,
                 book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
                 book.ShelfLocation,
-                book.Description))
+                book.Description,
+                book.CoverImageContentType == null
+                    ? null
+                    : "/api/library/books/" + book.BookId + "/cover"))
             .ToListAsync(cancellationToken);
     }
 
@@ -71,7 +76,10 @@ public sealed class AdminService(
                 book.Copies.Count,
                 book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
                 book.ShelfLocation,
-                book.Description))
+                book.Description,
+                book.CoverImageContentType == null
+                    ? null
+                    : "/api/library/books/" + book.BookId + "/cover"))
             .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<IReadOnlyList<BookCopyResponse>> GetCopiesAsync(
@@ -158,6 +166,31 @@ public sealed class AdminService(
         book.Description = NormalizeOptional(request.Description);
         book.IsActive = request.IsActive;
         AddAudit(actorId, "Update", "BOOK", id, book.Title);
+        await db.SaveChangesAsync(cancellationToken);
+        return (await GetBookAsync(id, cancellationToken))!;
+    }
+
+    public async Task<BookResponse> UploadBookCoverAsync(
+        int id,
+        Microsoft.AspNetCore.Http.IFormFile file,
+        int actorId,
+        CancellationToken cancellationToken)
+    {
+        var book = await db.Books.SingleOrDefaultAsync(item => item.BookId == id, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy đầu sách.");
+        if (file.Length is <= 0 or > MaxBookCoverSizeBytes)
+            throw new ArgumentException("Ảnh bìa phải có kích thước từ 1 byte đến 5 MB.");
+
+        using var buffer = new MemoryStream((int)file.Length);
+        await file.CopyToAsync(buffer, cancellationToken);
+        var imageData = buffer.ToArray();
+        var contentType = GetBookCoverContentType(imageData);
+        if (contentType is null)
+            throw new ArgumentException("Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP hợp lệ.");
+
+        book.CoverImageData = imageData;
+        book.CoverImageContentType = contentType;
+        AddAudit(actorId, "UpdateCover", "BOOK", id, book.Title);
         await db.SaveChangesAsync(cancellationToken);
         return (await GetBookAsync(id, cancellationToken))!;
     }
@@ -861,6 +894,23 @@ public sealed class AdminService(
 
     private static DateTimeOffset ToUtcOffset(DateTime value) =>
         new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+    private static string? GetBookCoverContentType(byte[] data)
+    {
+        if (data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+            return "image/jpeg";
+        if (data.Length >= 8
+            && data.AsSpan(0, 8).SequenceEqual(
+                new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }))
+            return "image/png";
+        if (data.Length >= 12
+            && data[0] == (byte)'R' && data[1] == (byte)'I'
+            && data[2] == (byte)'F' && data[3] == (byte)'F'
+            && data[8] == (byte)'W' && data[9] == (byte)'E'
+            && data[10] == (byte)'B' && data[11] == (byte)'P')
+            return "image/webp";
+        return null;
+    }
 
     private static void ValidateConfigValue(string key, string value)
     {

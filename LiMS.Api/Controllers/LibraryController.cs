@@ -27,6 +27,18 @@ public sealed class LibraryController(ILibraryQueryService libraryService) : Con
     public async Task<ActionResult<IReadOnlyList<BookResponse>>> Books(CancellationToken cancellationToken) =>
         Ok(await libraryService.GetPublicBooksAsync(cancellationToken));
 
+    [AllowAnonymous]
+    [HttpGet("books/{id:int}/cover")]
+    [EndpointSummary("Get a book cover image")]
+    [Produces("image/jpeg", "image/png", "image/webp")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> BookCover(int id, CancellationToken cancellationToken)
+    {
+        var cover = await libraryService.GetBookCoverAsync(id, cancellationToken);
+        return cover is null ? NotFound() : File(cover.Data, cover.ContentType);
+    }
+
     [Authorize]
     [HttpGet("users/{studentCode}")]
     [EndpointSummary("Get the current reader profile or an authorized reader profile")]

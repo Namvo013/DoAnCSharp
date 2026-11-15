@@ -26,6 +26,7 @@
 .detail-link { display: inline-block; margin-top: 12px; padding: 7px 10px; font-size: 11px; text-decoration: none; }
 .compact { padding: 8px 11px; font-size: 11px; }
 .overdue-warning { color: #b42318 !important; }
+.cover .cover-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .status.red { color: #991b1b; background: #fee2e2; }
 .recovery-card { padding: 38px; border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 36px rgba(17, 24, 39, .08); }
 .recovery-card h2 { margin-top: 12px; }

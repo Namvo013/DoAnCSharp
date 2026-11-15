@@ -14,6 +14,9 @@ public class HomeModel(LibraryApiClient libraryApi) : PageModel
     public IReadOnlyList<ApiBook> Books { get; private set; } = [];
     public IReadOnlyList<ApiLoan> ActiveLoans { get; private set; } = [];
 
+    public string? GetAbsoluteBookCoverUrl(string? coverImageUrl) =>
+        libraryApi.GetAbsoluteBookCoverUrl(coverImageUrl);
+
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
         StudentCode = HttpContext.Session.GetString("StudentCode") ?? "";
