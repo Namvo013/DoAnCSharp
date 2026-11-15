@@ -11,6 +11,14 @@
 }
 .password-wrap input { padding-right: 58px; }
 .form-row { gap: 12px; }
+.proposal-form > label { margin-top: 16px; }
+.proposal-form [data-valmsg-for] { display: block; color: #b42318; font-size: 12px; margin-top: 4px; }
+.form-message.error.validation-summary-valid { display: none; }
+.proposal-history-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--border); }
+.proposal-history-item:last-child { border-bottom: 0; }
+.proposal-history-item strong, .proposal-history-item small { display: block; }
+.proposal-history-item small { margin-top: 5px; color: var(--muted); }
+.proposal-history-item p { margin: 10px 0 0; color: var(--ink); font-size: 13px; white-space: pre-wrap; }
 .form-message { margin: 14px 0; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
 .form-message.success { color: #166534; background: #ecfdf3; border: 1px solid #bbf7d0; }
 .form-message.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
