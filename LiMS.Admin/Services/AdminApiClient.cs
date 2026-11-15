@@ -92,6 +92,12 @@ public sealed class AdminApiClient : IDisposable
         CancellationToken cancellationToken) =>
         PutAsync<ReaderResponse>($"api/admin/readers/{id}", request, cancellationToken);
 
+    public Task<MessageResponse> ResetReaderPasswordAsync(
+        int id,
+        ResetReaderPasswordRequest request,
+        CancellationToken cancellationToken) =>
+        PutAsync<MessageResponse>($"api/admin/readers/{id}/password", request, cancellationToken);
+
     public Task<IReadOnlyList<LoanResponse>> GetLoansAsync(string? status, CancellationToken cancellationToken) =>
         GetAsync<IReadOnlyList<LoanResponse>>(
             string.IsNullOrWhiteSpace(status)
@@ -150,6 +156,21 @@ public sealed class AdminApiClient : IDisposable
 
     public Task<IReadOnlyList<ActivityLogResponse>> GetActivityLogsAsync(CancellationToken cancellationToken) =>
         GetAsync<IReadOnlyList<ActivityLogResponse>>("api/admin/activity-logs?page=1&pageSize=100", cancellationToken);
+
+    public Task<DatabaseBackupStatusResponse> GetDatabaseBackupsAsync(CancellationToken cancellationToken) =>
+        GetAsync<DatabaseBackupStatusResponse>("api/admin/database-backups", cancellationToken);
+
+    public Task<DatabaseBackupFileResponse> CreateDatabaseBackupAsync(CancellationToken cancellationToken) =>
+        PostAsync<DatabaseBackupFileResponse>("api/admin/database-backups", new { }, cancellationToken);
+
+    public Task<DatabaseRestoreResponse> RestoreDatabaseBackupAsync(
+        string fileName,
+        RestoreDatabaseBackupRequest request,
+        CancellationToken cancellationToken) =>
+        PostAsync<DatabaseRestoreResponse>(
+            $"api/admin/database-backups/{Uri.EscapeDataString(fileName)}/restore",
+            request,
+            cancellationToken);
 
     private async Task<TResponse> GetAsync<TResponse>(string uri, CancellationToken cancellationToken)
     {

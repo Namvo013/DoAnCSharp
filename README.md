@@ -15,6 +15,7 @@ Hệ thống quản lý thư viện gồm Web cho độc giả, REST API dùng c
 | `legacy-frontend/` | Giao diện HTML/CSS/JavaScript cũ; không phải frontend đang chạy |
 | `start-admin.bat` | Khởi chạy ứng dụng Admin |
 | `start-frontend.bat` | Khởi chạy website Razor Pages |
+| `Start-LiMS.ps1` | Kiểm tra Backend và khởi chạy ứng dụng được chọn |
 
 ## Công nghệ
 
@@ -28,27 +29,21 @@ Hệ thống quản lý thư viện gồm Web cho độc giả, REST API dùng c
 ## Khởi chạy
 
 1. Cấu hình và khởi động SQL Server theo [hướng dẫn khởi động](docs/operations/KhoiDongWeb.txt).
-2. Tại thư mục dự án, mở terminal thứ nhất:
-
-   ```powershell
-   dotnet run --project ".\LiMS.Api\LiMS.Api.csproj" --launch-profile http
-   ```
-
-3. Mở terminal thứ hai để chạy Web:
+2. Chạy frontend:
 
    ```powershell
    .\start-frontend.bat
    ```
 
-   Website: <http://localhost:5500>
+   Script tự khởi động Backend nếu chưa chạy, kiểm tra kết nối SQL Server, sau đó chạy Web và mở trình duyệt. Website: <http://localhost:5500>
 
-4. Để chạy ứng dụng quản trị, dùng terminal thứ ba:
+3. Để chạy ứng dụng quản trị:
 
    ```powershell
    .\start-admin.bat
    ```
 
-   API: <http://localhost:5107>; health check: <http://localhost:5107/api/library/health>
+   Script tự khởi động Backend nếu cần rồi mở WinForms Admin. API: <http://localhost:5107>; health check: <http://localhost:5107/api/library/health>
 
 Tài khoản Admin ban đầu được tạo khi cấu hình database lần đầu. Không đưa mật khẩu hoặc JWT signing key vào GitHub; hãy dùng thông tin cấp riêng cho máy phát triển và đổi mật khẩu sau lần đăng nhập đầu tiên.
 

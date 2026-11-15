@@ -77,6 +77,7 @@ public sealed record UpdateReaderRequest(
     short BorrowLimit,
     DateOnly CardExpiryDate,
     bool IsActive);
+public sealed record ResetReaderPasswordRequest(string NewPassword);
 public sealed record DashboardResponse(
     int TotalBooks,
     int TotalCopies,
@@ -86,10 +87,32 @@ public sealed record DashboardResponse(
     int OverdueLoans,
     int PendingReservations,
     int PendingProposals,
+    int ApprovedProposals,
+    int RejectedProposals,
     decimal UnpaidFines,
     decimal CollectedFines,
-    IReadOnlyList<PopularBookResponse> PopularBooks);
+    IReadOnlyList<PopularBookResponse> PopularBooks,
+    IReadOnlyList<MonthlyCirculationReportResponse> MonthlyReports);
 public sealed record PopularBookResponse(int BookId, string Title, int LoanCount);
+public sealed record MonthlyCirculationReportResponse(
+    string Month,
+    int BorrowCount,
+    int ReturnCount,
+    decimal CollectedFines);
+public sealed record DatabaseBackupStatusResponse(
+    string DatabaseName,
+    string BackupDirectory,
+    IReadOnlyList<DatabaseBackupFileResponse> Backups);
+public sealed record DatabaseBackupFileResponse(
+    string FileName,
+    long SizeBytes,
+    DateTimeOffset CreatedAt);
+public sealed record DatabaseRestoreResponse(
+    string DatabaseName,
+    string RestoredFileName,
+    string SafetyBackupFileName,
+    DateTimeOffset CompletedAt);
+public sealed record RestoreDatabaseBackupRequest(string ConfirmDatabaseName);
 public sealed record CheckoutRequest(string ReaderCardNo, string Barcode, long? ReservationId);
 public sealed record ReturnRequest(string Barcode, string? FineReason, decimal AdditionalFineAmount);
 public sealed record LoanResponse(

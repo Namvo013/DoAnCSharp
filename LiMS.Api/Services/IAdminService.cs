@@ -15,6 +15,7 @@ public interface IAdminService
     Task<ReaderResponse?> GetReaderAsync(int readerId, CancellationToken cancellationToken);
     Task<ReaderResponse> CreateReaderAsync(CreateReaderRequest request, int actorId, CancellationToken cancellationToken);
     Task<ReaderResponse> UpdateReaderAsync(int readerId, UpdateReaderRequest request, int actorId, CancellationToken cancellationToken);
+    Task ResetReaderPasswordAsync(int readerId, ResetReaderPasswordRequest request, int actorId, CancellationToken cancellationToken);
     Task<DashboardResponse> GetDashboardAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<LoanResponse>> GetLoansAsync(string? status, CancellationToken cancellationToken);
     Task<LoanResponse?> GetLoanAsync(long loanId, CancellationToken cancellationToken);
