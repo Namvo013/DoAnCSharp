@@ -468,12 +468,13 @@ public sealed class AdminService(
         if (request.ReservationId.HasValue)
         {
             reservation = await db.Reservations.SingleOrDefaultAsync(
-                item => item.ReservationId == request.ReservationId.Value
-                    && item.ReaderId == reader.ReaderId
-                    && item.BookId == copy.BookId
-                    && (item.Status == RecordStatuses.Pending || item.Status == RecordStatuses.ReadyForPickup),
-                cancellationToken)
-                ?? throw new BusinessRuleException("Phiếu đặt giữ không hợp lệ cho độc giả hoặc đầu sách này.");
+       item => item.ReservationId == request.ReservationId.Value
+           && item.ReaderId == reader.ReaderId
+           && item.BookId == copy.BookId
+           && item.ExpireAt > DateTime.UtcNow
+           && (item.Status == RecordStatuses.Pending || item.Status == RecordStatuses.ReadyForPickup),
+       cancellationToken)
+       ?? throw new BusinessRuleException("Phiếu đặt giữ không hợp lệ, đã hết hạn hoặc không thuộc về độc giả/đầu sách này.");
         }
         else
         {
