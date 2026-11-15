@@ -116,6 +116,13 @@ public static class DatabaseInitializer
         if (await db.SystemConfigs.AnyAsync(item => item.ConfigKey == ImportMarker, cancellationToken))
             return;
 
+        if (!await LegacyUsersTableExistsAsync(legacy, cancellationToken))
+        {
+            logger.LogInformation("Legacy Users table was not found. Skipping legacy data import.");
+            await MarkLegacyImportCompletedAsync(db, cancellationToken);
+            return;
+        }
+
         var legacyUsers = await legacy.Users.AsNoTracking().ToListAsync(cancellationToken);
         var legacyBooks = await legacy.Books.AsNoTracking().ToListAsync(cancellationToken);
         var legacyLoans = await legacy.Loans.AsNoTracking().ToListAsync(cancellationToken);
@@ -128,13 +135,7 @@ public static class DatabaseInitializer
             || legacyNotifications.Count > 0;
         if (!hasLegacyData)
         {
-            db.SystemConfigs.Add(new SystemConfig
-            {
-                ConfigKey = ImportMarker,
-                ConfigValue = DateTime.UtcNow.ToString("O"),
-                Description = "One-time import marker for the legacy LiMS tables."
-            });
-            await db.SaveChangesAsync(cancellationToken);
+            await MarkLegacyImportCompletedAsync(db, cancellationToken);
             return;
         }
 
@@ -371,6 +372,36 @@ public static class DatabaseInitializer
             legacyLoans.Count,
             legacyReservations.Count,
             legacyNotifications.Count);
+    }
+
+    private static async Task<bool> LegacyUsersTableExistsAsync(
+        LegacyLiMSDbContext legacy,
+        CancellationToken cancellationToken)
+    {
+        await legacy.Database.OpenConnectionAsync(cancellationToken);
+        try
+        {
+            await using var command = legacy.Database.GetDbConnection().CreateCommand();
+            command.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[dbo].[Users]', N'U') IS NULL THEN 0 ELSE 1 END";
+            return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken)) == 1;
+        }
+        finally
+        {
+            await legacy.Database.CloseConnectionAsync();
+        }
+    }
+
+    private static async Task MarkLegacyImportCompletedAsync(
+        LiMSDbContext db,
+        CancellationToken cancellationToken)
+    {
+        db.SystemConfigs.Add(new SystemConfig
+        {
+            ConfigKey = ImportMarker,
+            ConfigValue = DateTime.UtcNow.ToString("O"),
+            Description = "One-time import marker for the legacy LiMS tables."
+        });
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static async Task<Book?> FindMatchingBookAsync(
