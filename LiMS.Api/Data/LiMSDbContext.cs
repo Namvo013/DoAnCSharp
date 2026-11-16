@@ -98,6 +98,8 @@ public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbC
             entity.Property(x => x.Publisher).HasMaxLength(100);
             entity.Property(x => x.ShelfLocation).HasMaxLength(50);
             entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.CoverImageData).HasColumnType("varbinary(max)");
+            entity.Property(x => x.CoverImageContentType).HasMaxLength(50);
             entity.HasIndex(x => x.Isbn).IsUnique().HasFilter("[Isbn] IS NOT NULL");
             entity.HasIndex(x => new { x.Title, x.Author });
             entity.HasOne(x => x.Category).WithMany(x => x.Books)

@@ -10,6 +10,9 @@ GET {{baseUrl}}/api/library/health
 ###
 GET {{baseUrl}}/api/library/books
 
+### Get a book cover (public)
+GET {{baseUrl}}/api/library/books/1/cover
+
 ### Login - copy accessToken from the response into @token
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
@@ -100,6 +103,18 @@ Authorization: Bearer {{token}}
 ###
 GET {{baseUrl}}/api/admin/books/1
 Authorization: Bearer {{token}}
+
+### Upload or replace a book cover (place a JPEG, PNG, or WebP at ./cover.jpg)
+POST {{baseUrl}}/api/admin/books/1/cover
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=BookCoverBoundary
+
+--BookCoverBoundary
+Content-Disposition: form-data; name="File"; filename="cover.jpg"
+Content-Type: image/jpeg
+
+< ./cover.jpg
+--BookCoverBoundary--
 
 ###
 GET {{baseUrl}}/api/admin/books/1/copies

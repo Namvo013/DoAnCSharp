@@ -41,8 +41,18 @@
     }
     @foreach (var book in Model.Books)
     {
+        var coverImageUrl = Model.GetAbsoluteBookCoverUrl(book.CoverImageUrl);
         <article class="book-card">
-            <div class="cover clean"><strong>@book.Title</strong><small>@book.Author</small></div>
+            <div class="cover clean">
+                @if (coverImageUrl is not null)
+                {
+                    <img class="cover-image" src="@coverImageUrl" alt="Bìa sách @book.Title" loading="lazy" />
+                }
+                else
+                {
+                    <strong>@book.Title</strong><small>@book.Author</small>
+                }
+            </div>
             <div>
                 <span class="tag">@book.Category</span>
                 <h3>@book.Title</h3>

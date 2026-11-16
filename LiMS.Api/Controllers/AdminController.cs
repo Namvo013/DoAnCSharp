@@ -62,6 +62,23 @@ public sealed class AdminController(
         CancellationToken cancellationToken) =>
         Ok(await adminService.UpdateBookAsync(id, request, GetActorId(), cancellationToken));
 
+    [HttpPost("books/{id:int}/cover")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(5 * 1024 * 1024 + 128 * 1024)]
+    [EndpointSummary("Upload or replace a book cover image")]
+    [ProducesResponseType<BookResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BookResponse>> UploadBookCover(
+        int id,
+        [FromForm] UploadBookCoverRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await adminService.UploadBookCoverAsync(
+            id,
+            request.File,
+            GetActorId(),
+            cancellationToken));
+
     [HttpPost("books/{id:int}/copies")]
     [EndpointSummary("Add physical copies to a book")]
     [ProducesResponseType<MessageResponse>(StatusCodes.Status201Created)]

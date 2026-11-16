@@ -61,6 +61,23 @@ public sealed class AdminApiClient : IDisposable
     public Task<BookResponse> UpdateBookAsync(int id, UpdateBookRequest request, CancellationToken cancellationToken) =>
         PutAsync<BookResponse>($"api/admin/books/{id}", request, cancellationToken);
 
+    public async Task<BookResponse> UploadBookCoverAsync(
+        int bookId,
+        string filePath,
+        CancellationToken cancellationToken)
+    {
+        using var fileStream = File.OpenRead(filePath);
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(GetImageMediaType(filePath));
+        content.Add(fileContent, "File", Path.GetFileName(filePath));
+        using var response = await _client.PostAsync(
+            $"api/admin/books/{bookId}/cover",
+            content,
+            cancellationToken);
+        return await ReadResponseAsync<BookResponse>(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<BookCopyResponse>> GetCopiesAsync(int bookId, CancellationToken cancellationToken) =>
         GetAsync<IReadOnlyList<BookCopyResponse>>($"api/admin/books/{bookId}/copies", cancellationToken);
 
@@ -232,6 +249,15 @@ public sealed class AdminApiClient : IDisposable
             ?? $"Yêu cầu thất bại với mã HTTP {(int)response.StatusCode}.";
         return new AdminApiException(response.StatusCode, message);
     }
+
+    private static string GetImageMediaType(string filePath) =>
+        Path.GetExtension(filePath).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
 
     public sealed class AdminApiException(HttpStatusCode statusCode, string message)
         : Exception(message)

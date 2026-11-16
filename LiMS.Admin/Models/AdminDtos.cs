@@ -22,7 +22,8 @@ public sealed record BookResponse(
     int TotalCopies,
     int AvailableCopies,
     string? ShelfLocation,
-    string? Description);
+    string? Description,
+    string? CoverImageUrl);
 public sealed record BookCopyResponse(int Id, int BookId, string Barcode, string Status);
 public sealed record CreateBookRequest(
     string Category,

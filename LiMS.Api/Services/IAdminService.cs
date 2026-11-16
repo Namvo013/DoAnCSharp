@@ -7,6 +7,11 @@ public interface IAdminService
     Task<IReadOnlyList<BookResponse>> GetBooksAsync(string? search, CancellationToken cancellationToken);
     Task<BookResponse?> GetBookAsync(int id, CancellationToken cancellationToken);
     Task<IReadOnlyList<BookCopyResponse>> GetCopiesAsync(int bookId, CancellationToken cancellationToken);
+    Task<BookResponse> UploadBookCoverAsync(
+        int id,
+        Microsoft.AspNetCore.Http.IFormFile file,
+        int actorId,
+        CancellationToken cancellationToken);
     Task<BookResponse> CreateBookAsync(CreateBookRequest request, int actorId, CancellationToken cancellationToken);
     Task<BookResponse> UpdateBookAsync(int id, UpdateBookRequest request, int actorId, CancellationToken cancellationToken);
     Task AddCopiesAsync(int bookId, CreateCopiesRequest request, int actorId, CancellationToken cancellationToken);
