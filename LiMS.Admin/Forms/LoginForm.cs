@@ -4,45 +4,53 @@ namespace LiMS.Admin.Forms;
 
 public sealed class LoginForm : Form
 {
+    private static readonly Color Ink = Color.FromArgb(30, 53, 42);
+    private static readonly Color Muted = Color.FromArgb(106, 121, 111);
+    private static readonly Color Accent = Color.FromArgb(43, 119, 75);
+
     private readonly TextBox _apiAddress = new() { Text = "http://localhost:5107", Dock = DockStyle.Fill };
     private readonly TextBox _username = new() { Dock = DockStyle.Fill };
     private readonly TextBox _password = new() { UseSystemPasswordChar = true, Dock = DockStyle.Fill };
-    private readonly Button _signIn = new() { Text = "Đăng nhập", AutoSize = true };
-    private readonly Label _error = new() { ForeColor = Color.Firebrick, AutoSize = true };
+    private readonly Button _signIn = new() { Text = "Đăng nhập hệ thống", Dock = DockStyle.Fill };
+    private readonly Label _error = new()
+    {
+        ForeColor = Color.FromArgb(185, 55, 55),
+        AutoSize = true,
+        MaximumSize = new Size(380, 0)
+    };
 
     public LoginForm()
     {
         Text = "LiMS - Đăng nhập quản trị";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(460, 310);
-        ClientSize = new Size(520, 350);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
+        AutoScaleMode = AutoScaleMode.Dpi;
+        MinimumSize = new Size(900, 600);
+        ClientSize = new Size(1080, 700);
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        BackColor = Color.FromArgb(244, 247, 244);
+        Font = new Font("Segoe UI", 10F);
 
-        var title = new Label
-        {
-            Text = "HỆ THỐNG QUẢN LÝ THƯ VIỆN",
-            Font = new Font(Font, FontStyle.Bold),
-            AutoSize = true,
-            Anchor = AnchorStyles.None
-        };
-        var fields = new TableLayoutPanel
+        var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 4,
-            Padding = new Padding(28, 12, 28, 8)
+            RowCount = 1,
+            BackColor = Color.White
         };
-        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
-        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        fields.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        AddField(fields, 0, "API", _apiAddress);
-        AddField(fields, 1, "Tài khoản", _username);
-        AddField(fields, 2, "Mật khẩu", _password);
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58));
+        layout.Controls.Add(CreateWelcomePanel(), 0, 0);
+        layout.Controls.Add(CreateLoginPanel(), 1, 0);
+        Controls.Add(layout);
 
+        _signIn.FlatStyle = FlatStyle.Flat;
+        _signIn.FlatAppearance.BorderSize = 0;
+        _signIn.BackColor = Accent;
+        _signIn.ForeColor = Color.White;
+        _signIn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+        _signIn.Cursor = Cursors.Hand;
+        _signIn.FlatAppearance.MouseOverBackColor = Color.FromArgb(34, 101, 63);
         _signIn.Click += async (_, _) => await SignInAsync();
         _password.KeyDown += async (_, args) =>
         {
@@ -51,50 +59,153 @@ public sealed class LoginForm : Form
             args.SuppressKeyPress = true;
             await SignInAsync();
         };
+        AcceptButton = _signIn;
+    }
 
-        var footer = new FlowLayoutPanel
+    private Control CreateWelcomePanel()
+    {
+        var panel = new Panel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            Padding = new Padding(0, 8, 24, 0),
-            Anchor = AnchorStyles.None
+            BackColor = Color.FromArgb(22, 43, 32),
+            Padding = new Padding(48)
         };
-        footer.Controls.Add(_signIn);
-        footer.Controls.Add(_error);
-
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 3
+            RowCount = 6,
+            BackColor = panel.BackColor
         };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 66));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 94));
-        layout.Controls.Add(title, 0, 0);
-        layout.Controls.Add(fields, 0, 1);
-        layout.Controls.Add(footer, 0, 2);
-        Controls.Add(layout);
-
-        AcceptButton = _signIn;
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 14));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 8));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 29));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 17));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 12));
+        layout.Controls.Add(CreateWelcomeLabel("LiMS", 30, Color.White, FontStyle.Bold), 0, 0);
+        layout.Controls.Add(CreateWelcomeLabel("LIBRARY MANAGEMENT SYSTEM", 8.5F, Color.FromArgb(151, 207, 159), FontStyle.Bold), 0, 1);
+        layout.Controls.Add(CreateWelcomeLabel("Không gian quản trị\r\nthư viện hiện đại", 25, Color.White, FontStyle.Bold), 0, 2);
+        layout.Controls.Add(CreateWelcomeLabel("Quản lý kho sách, độc giả và hoạt động\r\nmượn trả trên cùng một hệ thống.", 10.5F, Color.FromArgb(213, 226, 216)), 0, 3);
+        layout.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = panel.BackColor }, 0, 4);
+        layout.Controls.Add(CreateWelcomeLabel("BẢO MẬT  •  ĐỒNG BỘ  •  DỄ SỬ DỤNG", 8, Color.FromArgb(171, 194, 178), FontStyle.Bold), 0, 5);
+        panel.Controls.Add(layout);
+        return panel;
     }
 
-    private static void AddField(TableLayoutPanel layout, int row, string label, Control control)
+    private static Label CreateWelcomeLabel(string text, float fontSize, Color color, FontStyle style = FontStyle.Regular) => new()
     {
+        Text = text,
+        Dock = DockStyle.Fill,
+        ForeColor = color,
+        Font = new Font("Segoe UI", fontSize, style),
+        TextAlign = ContentAlignment.MiddleLeft,
+        Padding = new Padding(0),
+        Margin = new Padding(0)
+    };
+
+    private Control CreateLoginPanel()
+    {
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 10,
+            Padding = new Padding(54, 45, 54, 34),
+            BackColor = Color.White
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+
+        var heading = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(0, 4, 0, 4),
+            BackColor = Color.White
+        };
+        heading.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        heading.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        heading.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        heading.Controls.Add(new Label
+        {
+            Text = "Đăng nhập",
+            Dock = DockStyle.Fill,
+            ForeColor = Ink,
+            Font = new Font("Segoe UI", 22, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = Padding.Empty
+        }, 0, 0);
+        heading.Controls.Add(new Label
+        {
+            Text = "Đăng nhập bằng tài khoản quản trị hoặc thủ thư.",
+            Dock = DockStyle.Fill,
+            ForeColor = Muted,
+            Font = new Font("Segoe UI", 9.5F),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = Padding.Empty
+        }, 0, 1);
+        layout.Controls.Add(heading, 0, 0);
+        layout.Controls.Add(CreateFieldLabel("TÀI KHOẢN"), 0, 1);
+        layout.Controls.Add(StyleInput(_username), 0, 2);
+        layout.Controls.Add(CreateFieldLabel("MẬT KHẨU"), 0, 3);
+        layout.Controls.Add(StyleInput(_password), 0, 4);
+        layout.Controls.Add(CreateFieldLabel("ĐỊA CHỈ API"), 0, 5);
+        layout.Controls.Add(StyleInput(_apiAddress), 0, 6);
+        layout.Controls.Add(_error, 0, 7);
+        layout.Controls.Add(_signIn, 0, 8);
         layout.Controls.Add(new Label
         {
-            Text = label,
-            AutoSize = true,
-            Anchor = AnchorStyles.Left
-        }, 0, row);
-        layout.Controls.Add(control, 1, row);
+            Text = "LiMS  •  Hệ thống quản lý thư viện",
+            Dock = DockStyle.Fill,
+            ForeColor = Muted,
+            Font = new Font("Segoe UI", 8.5F),
+            TextAlign = ContentAlignment.BottomLeft
+        }, 0, 9);
+        return layout;
+    }
+
+    private static Label CreateFieldLabel(string text) => new()
+    {
+        Text = text,
+        Dock = DockStyle.Fill,
+        ForeColor = Color.FromArgb(65, 87, 71),
+        Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+        TextAlign = ContentAlignment.BottomLeft,
+        Padding = new Padding(0, 0, 0, 5)
+    };
+
+    private static TextBox StyleInput(TextBox input)
+    {
+        input.Margin = new Padding(0, 2, 0, 8);
+        input.BorderStyle = BorderStyle.FixedSingle;
+        input.Font = new Font("Segoe UI", 10F);
+        input.BackColor = Color.FromArgb(248, 251, 248);
+        return input;
     }
 
     private async Task SignInAsync()
     {
         _error.Text = "";
+        if (string.IsNullOrWhiteSpace(_username.Text) || string.IsNullOrWhiteSpace(_password.Text))
+        {
+            _error.Text = "Vui lòng nhập đầy đủ tài khoản và mật khẩu.";
+            return;
+        }
+
         _signIn.Enabled = false;
+        _signIn.Text = "Đang xác thực...";
         try
         {
             if (!Uri.TryCreate(_apiAddress.Text.Trim(), UriKind.Absolute, out var address)
@@ -132,7 +243,10 @@ public sealed class LoginForm : Form
         finally
         {
             if (!IsDisposed)
+            {
                 _signIn.Enabled = true;
+                _signIn.Text = "Đăng nhập hệ thống";
+            }
         }
     }
 }
