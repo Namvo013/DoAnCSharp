@@ -11,6 +11,45 @@ function closeMobileMenu() {
     menuButton.setAttribute("aria-label", "Mở điều hướng");
 }
 
+function markFormSubmitting(form) {
+    if (form.dataset.submitting === "true") return;
+    form.dataset.submitting = "true";
+    form.setAttribute("aria-busy", "true");
+
+    form.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]').forEach((button) => {
+        if (button.disabled) return;
+        button.dataset.loadingButton = "true";
+        button.classList.add("form-submitting");
+        button.disabled = true;
+
+        if (button instanceof HTMLInputElement) {
+            button.dataset.previousLabel = button.value;
+            button.value = "Đang xử lý...";
+        } else {
+            button.dataset.previousLabel = button.textContent;
+            button.textContent = "Đang xử lý...";
+        }
+    });
+}
+
+function resetSubmittingForms() {
+    document.querySelectorAll('form[data-submitting="true"]').forEach((form) => {
+        form.removeAttribute("aria-busy");
+        delete form.dataset.submitting;
+        form.querySelectorAll('[data-loading-button="true"]').forEach((button) => {
+            button.disabled = false;
+            button.classList.remove("form-submitting");
+            if (button instanceof HTMLInputElement) {
+                button.value = button.dataset.previousLabel || "";
+            } else {
+                button.textContent = button.dataset.previousLabel || "";
+            }
+            delete button.dataset.loadingButton;
+            delete button.dataset.previousLabel;
+        });
+    });
+}
+
 if (menuButton && sidebar) {
     menuButton.addEventListener("click", () => {
         const isOpen = sidebar.classList.toggle("open");
@@ -38,7 +77,8 @@ const toastRegion = document.getElementById("toast-region");
 
 if (toastRegion) {
     document.querySelectorAll(
-        '.form-message.success[role="status"], .form-message.warning[role="status"], .success-message[data-toast]'
+        '.form-message.success[role="status"], .form-message.warning[role="status"], ' +
+        '.form-message.error[role="alert"], .success-message[data-toast]'
     ).forEach((message) => {
         if (!message.textContent.trim()) return;
 
@@ -90,28 +130,30 @@ let pendingForm = null;
 
 document.addEventListener("submit", (event) => {
     const form = event.target;
-    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm) return;
+    if (!(form instanceof HTMLFormElement)) return;
 
-    if (form.dataset.confirmed === "true") {
-        delete form.dataset.confirmed;
-        return;
-    }
-
-    if (!confirmDialog || !confirmMessage || typeof confirmDialog.showModal !== "function") {
-        event.preventDefault();
-        if (window.confirm(form.dataset.confirm)) {
-            form.dataset.confirmed = "true";
-            form.requestSubmit();
+    if (form.dataset.confirm && form.dataset.confirmed !== "true") {
+        if (!confirmDialog || !confirmMessage || typeof confirmDialog.showModal !== "function") {
+            event.preventDefault();
+            if (window.confirm(form.dataset.confirm)) {
+                form.dataset.confirmed = "true";
+                form.requestSubmit();
+            }
+            return;
         }
+
+        event.preventDefault();
+        if (confirmDialog.open) return;
+        pendingForm = form;
+        confirmMessage.textContent = form.dataset.confirm;
+        confirmDialog.returnValue = "";
+        confirmDialog.showModal();
         return;
     }
 
-    event.preventDefault();
-    if (confirmDialog.open) return;
-    pendingForm = form;
-    confirmMessage.textContent = form.dataset.confirm;
-    confirmDialog.returnValue = "";
-    confirmDialog.showModal();
+    delete form.dataset.confirmed;
+    if (form.method.toLowerCase() !== "post" && !form.hasAttribute("data-live-search")) return;
+    markFormSubmitting(form);
 });
 
 cancelButton?.addEventListener("click", () => confirmDialog.close("cancel"));
@@ -129,3 +171,5 @@ confirmDialog?.addEventListener("close", () => {
     form.dataset.confirmed = "true";
     form.requestSubmit();
 });
+
+window.addEventListener("pageshow", resetSubmittingForms);

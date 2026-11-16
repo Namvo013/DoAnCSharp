@@ -47,7 +47,10 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
                 reader.CardNo,
                 reader.Account.FullName,
                 reader.Account.Email,
-                reader.Account.Role);
+                reader.Account.Role,
+                reader.Account.Phone,
+                reader.CardExpiryDate,
+                reader.CardStatus);
     }
 
     public async Task<IReadOnlyList<ReaderLoanResponse>> GetReaderLoansAsync(

@@ -6,31 +6,49 @@
 
 <div class="page-head"><div><span class="eyebrow">TÀI KHOẢN</span><h1>Thông tin cá nhân</h1></div></div>
 <section class="profile-card">
-    @if (Model.Profile is not null)
-    {
-        <div class="profile-side"><div class="profile-avatar">@(Model.Profile.FullName.FirstOrDefault())</div><strong>@Model.Profile.FullName</strong><span>Độc giả</span></div>
-        <div class="profile-details">
-            <h2>Thông tin cơ bản</h2>
+    <div class="profile-side">
+        <div class="profile-avatar">@(Model.FullName.FirstOrDefault())</div>
+        <strong>@Model.FullName</strong>
+        <span>Mã độc giả: @Model.StudentCode</span>
+        @if (Model.Profile?.CardExpiryDate is { } expiryDate)
+        {
+            <small>Thẻ có hiệu lực đến @expiryDate.ToString("dd/MM/yyyy")</small>
+        }
+    </div>
+    <div class="profile-details">
+        <h2>Thông tin cơ bản</h2>
+        <form method="post" asp-page-handler="UpdateProfile" class="profile-edit-form">
+            <div asp-validation-summary="ModelOnly" class="form-message error" role="alert"></div>
             <div class="info-grid">
-                <label>Mã độc giả<input value="@Model.Profile.StudentCode" readonly /></label>
-                <label>Họ và tên<input value="@Model.Profile.FullName" readonly /></label>
-                <label>Email<input value="@Model.Profile.Email" readonly /></label>
-                <label>Vai trò<input value="@Model.Profile.Role" readonly /></label>
+                <label asp-for="FullName">Họ và tên
+                    <input asp-for="FullName" autocomplete="name" required maxlength="100" />
+                    <span asp-validation-for="FullName"></span>
+                </label>
+                <label asp-for="Email">Email
+                    <input asp-for="Email" type="email" autocomplete="email" required maxlength="100" />
+                    <span asp-validation-for="Email"></span>
+                </label>
+                <label asp-for="Phone">Số điện thoại
+                    <input asp-for="Phone" type="tel" autocomplete="tel" maxlength="20" />
+                    <span asp-validation-for="Phone"></span>
+                </label>
+                <label>Mã độc giả<input value="@Model.StudentCode" readonly /></label>
             </div>
-            <div class="password-section">
-                <div><h2>Bảo mật tài khoản</h2><p>Đổi mật khẩu để bảo vệ tài khoản thư viện.</p></div>
-                <form method="post" asp-page-handler="ChangePassword" class="password-form">
-                    <div asp-validation-summary="ModelOnly" class="login-error validation-summary-valid" role="alert"></div>
-                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-                    {
-                        <p class="success-message" data-toast role="status">@Model.SuccessMessage</p>
-                    }
-                    <label asp-for="CurrentPassword">Mật khẩu hiện tại<input asp-for="CurrentPassword" type="password" minlength="6" required /></label>
-                    <label asp-for="NewPassword">Mật khẩu mới<input asp-for="NewPassword" type="password" minlength="8" required /></label>
-                    <label asp-for="ConfirmPassword">Xác nhận mật khẩu mới<input asp-for="ConfirmPassword" type="password" minlength="8" required /></label>
-                    <button class="primary" type="submit">Đổi mật khẩu</button>
-                </form>
-            </div>
+            <button class="primary" type="submit">Lưu thông tin</button>
+        </form>
+        <div class="password-section">
+            <div><h2>Bảo mật tài khoản</h2><p>Đổi mật khẩu để bảo vệ tài khoản thư viện.</p></div>
+            <form method="post" asp-page-handler="ChangePassword" class="password-form">
+                <div asp-validation-summary="ModelOnly" class="login-error validation-summary-valid" role="alert"></div>
+                @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                {
+                    <p class="success-message" data-toast role="status">@Model.SuccessMessage</p>
+                }
+                <label asp-for="CurrentPassword">Mật khẩu hiện tại<input asp-for="CurrentPassword" type="password" autocomplete="current-password" minlength="6" required /></label>
+                <label asp-for="NewPassword">Mật khẩu mới<input asp-for="NewPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+                <label asp-for="ConfirmPassword">Xác nhận mật khẩu mới<input asp-for="ConfirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+                <button class="primary" type="submit">Đổi mật khẩu</button>
+            </form>
         </div>
-    }
+    </div>
 </section>

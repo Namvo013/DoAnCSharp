@@ -6,13 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LiMS.Api.Controllers;
 
+/// <summary>Điểm cuối tra cứu thư mục và dữ liệu cá nhân của độc giả.</summary>
 [ApiController]
 [Route("api/library")]
 public sealed class LibraryController(ILibraryQueryService libraryService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet("health")]
-    [EndpointSummary("Check API and SQL Server connectivity")]
+    [EndpointSummary("Kiểm tra kết nối API và SQL Server")]
     public async Task<IActionResult> Health(CancellationToken cancellationToken) =>
         Ok(new
         {
@@ -22,14 +23,14 @@ public sealed class LibraryController(ILibraryQueryService libraryService) : Con
 
     [AllowAnonymous]
     [HttpGet("books")]
-    [EndpointSummary("List active books in the public catalog")]
+    [EndpointSummary("Liệt kê sách đang hoạt động trong danh mục công khai")]
     [ProducesResponseType<IReadOnlyList<BookResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<BookResponse>>> Books(CancellationToken cancellationToken) =>
         Ok(await libraryService.GetPublicBooksAsync(cancellationToken));
 
     [AllowAnonymous]
     [HttpGet("books/{id:int}/cover")]
-    [EndpointSummary("Get a book cover image")]
+    [EndpointSummary("Lấy ảnh bìa của một đầu sách")]
     [Produces("image/jpeg", "image/png", "image/webp")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -41,7 +42,7 @@ public sealed class LibraryController(ILibraryQueryService libraryService) : Con
 
     [Authorize]
     [HttpGet("users/{studentCode}")]
-    [EndpointSummary("Get the current reader profile or an authorized reader profile")]
+    [EndpointSummary("Lấy hồ sơ của độc giả hiện tại hoặc hồ sơ được cấp quyền")]
     public async Task<IActionResult> GetUser(string studentCode, CancellationToken cancellationToken)
     {
         var reader = await libraryService.GetReaderProfileAsync(studentCode, cancellationToken);
@@ -50,19 +51,20 @@ public sealed class LibraryController(ILibraryQueryService libraryService) : Con
         if (!IsAuthorizedFor(reader.AccountId))
             return Forbid();
 
-        return Ok(new
-        {
-            Id = reader.AccountId,
-            StudentCode = reader.CardNo,
+        return Ok(new ReaderProfileResponse(
+            reader.AccountId,
+            reader.CardNo,
             reader.FullName,
             reader.Email,
-            reader.Role
-        });
+            reader.Role,
+            reader.Phone,
+            reader.CardExpiryDate,
+            reader.CardStatus));
     }
 
     [Authorize]
     [HttpGet("loans/{studentCode}")]
-    [EndpointSummary("List loans visible to the current account")]
+    [EndpointSummary("Liệt kê phiếu mượn mà tài khoản hiện tại được phép xem")]
     [ProducesResponseType<IReadOnlyList<ReaderLoanResponse>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Loans(string studentCode, CancellationToken cancellationToken)
     {
@@ -77,7 +79,7 @@ public sealed class LibraryController(ILibraryQueryService libraryService) : Con
 
     [Authorize]
     [HttpGet("reservations/{studentCode}")]
-    [EndpointSummary("List reservations visible to the current account")]
+    [EndpointSummary("Liệt kê phiếu đặt giữ mà tài khoản hiện tại được phép xem")]
     [ProducesResponseType<IReadOnlyList<ReaderReservationResponse>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Reservations(string studentCode, CancellationToken cancellationToken)
     {
@@ -92,7 +94,7 @@ public sealed class LibraryController(ILibraryQueryService libraryService) : Con
 
     [Authorize]
     [HttpGet("notifications/{studentCode}")]
-    [EndpointSummary("List email log entries for the current reader")]
+    [EndpointSummary("Liệt kê thông báo của độc giả hiện tại")]
     [ProducesResponseType<IReadOnlyList<ReaderNotificationResponse>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Notifications(string studentCode, CancellationToken cancellationToken)
     {

@@ -23,6 +23,20 @@
     <article><div class="stat-icon red">⌕</div><div><span>Mã độc giả</span><strong class="student-code">@Model.StudentCode</strong><small>tài khoản đang đăng nhập</small></div></article>
 </section>
 
+<section class="member-card" aria-label="Thẻ độc giả điện tử">
+    <div class="member-card__details">
+        <span class="eyebrow">THẺ ĐỘC GIẢ</span>
+        <h2>@Model.FullName</h2>
+        <span>Mã độc giả</span>
+        <strong class="member-card__number">@Model.StudentCode</strong>
+        <a class="secondary compact" asp-page="/Profile">Thông tin tài khoản</a>
+    </div>
+    <div class="member-card__qr">
+        <img src="/Home?handler=Qr" alt="Mã QR thẻ độc giả @Model.StudentCode" width="128" height="128" />
+        <small>Quét mã tại quầy thư viện</small>
+    </div>
+</section>
+
 <section class="panel">
     <div class="panel-head"><h2>Phiếu mượn đang hoạt động</h2><a asp-page="/Loans">Xem tất cả →</a></div>
     @if (Model.ActiveLoans.Count == 0)

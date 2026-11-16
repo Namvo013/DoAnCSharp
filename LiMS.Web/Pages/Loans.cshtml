@@ -4,7 +4,10 @@
     ViewData["Title"] = "Thông tin tình trạng sách";
 }
 
-<div class="page-head"><div><span class="eyebrow">LƯU THÔNG</span><h1>Thông tin tình trạng sách</h1><p>Theo dõi tình trạng mượn, ngày trả và thời hạn của từng cuốn sách.</p></div></div>
+<div class="page-head">
+    <div><span class="eyebrow">LƯU THÔNG</span><h1>Thông tin tình trạng sách</h1><p>Theo dõi tình trạng mượn, ngày trả và thời hạn của từng cuốn sách.</p></div>
+    <a class="secondary compact" asp-page="/Loans" aria-label="Tải lại danh sách phiếu mượn">↻ Làm mới</a>
+</div>
 @if (Model.SuccessMessage is not null)
 {
     <div class="form-message success" role="status">@Model.SuccessMessage</div>
@@ -26,16 +29,16 @@
         var isReturned = loan.ReturnedDate is not null || loan.Status is "Returned" or "Đã trả";
         <div class="table-row">
             <div><strong>@loan.Book?.Title</strong><small>Mã phiếu: @loan.Id</small></div>
-            <span>@LoansModel.FormatDate(loan.BorrowedDate)</span>
-            <span class="@(isOverdue ? "due-date" : "")">@LoansModel.FormatDate(loan.DueDate)</span>
-            <span>
+            <span data-label="Ngày mượn">@LoansModel.FormatDate(loan.BorrowedDate)</span>
+            <span data-label="Hạn trả" class="@(isOverdue ? "due-date" : "")">@LoansModel.FormatDate(loan.DueDate)</span>
+            <span data-label="Trạng thái">
                 <b class="status @(isOverdue ? "red" : isActive ? "blue" : "green")">@LoansModel.DisplayStatus(loan)</b>
                 @if (isOverdue)
                 {
                     <small class="overdue-warning">Vui lòng liên hệ thư viện để xử lý quá hạn.</small>
                 }
             </span>
-            <span>
+            <span data-label="Thao tác">
                 @if (!isReturned && LoansModel.CanRenew(loan))
                 {
                     <form method="post" asp-page-handler="Renew" asp-route-loanId="@loan.Id">

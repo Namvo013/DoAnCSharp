@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LiMS.Api.Controllers;
 
+/// <summary>Điểm cuối quản trị sách, độc giả, mượn trả và báo cáo thư viện.</summary>
 [ApiController]
 [Authorize(Roles = "Admin,Librarian")]
 [Route("api/admin")]
@@ -14,13 +15,13 @@ public sealed class AdminController(
     IDatabaseMaintenanceService databaseMaintenanceService) : ControllerBase
 {
     [HttpGet("dashboard")]
-    [EndpointSummary("Get library dashboard statistics")]
+    [EndpointSummary("Lấy số liệu tổng quan hoạt động thư viện")]
     [ProducesResponseType<DashboardResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<DashboardResponse>> Dashboard(CancellationToken cancellationToken) =>
         Ok(await adminService.GetDashboardAsync(cancellationToken));
 
     [HttpGet("books")]
-    [EndpointSummary("List or search books for administration")]
+    [EndpointSummary("Liệt kê hoặc tìm kiếm đầu sách để quản trị")]
     [ProducesResponseType<IReadOnlyList<BookResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<BookResponse>>> Books(
         [FromQuery] string? search,
@@ -28,7 +29,7 @@ public sealed class AdminController(
         Ok(await adminService.GetBooksAsync(search, cancellationToken));
 
     [HttpGet("books/{id:int}")]
-    [EndpointSummary("Get one book")]
+    [EndpointSummary("Lấy thông tin một đầu sách")]
     public async Task<ActionResult<BookResponse>> GetBook(int id, CancellationToken cancellationToken)
     {
         var book = await adminService.GetBookAsync(id, cancellationToken);
@@ -36,7 +37,7 @@ public sealed class AdminController(
     }
 
     [HttpGet("books/{id:int}/copies")]
-    [EndpointSummary("List physical copies of a book")]
+    [EndpointSummary("Liệt kê các bản sao của một đầu sách")]
     [ProducesResponseType<IReadOnlyList<BookCopyResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<BookCopyResponse>>> Copies(
         int id,
@@ -44,7 +45,7 @@ public sealed class AdminController(
         Ok(await adminService.GetCopiesAsync(id, cancellationToken));
 
     [HttpPost("books")]
-    [EndpointSummary("Create a book and its initial copies")]
+    [EndpointSummary("Tạo đầu sách và các bản sao ban đầu")]
     [ProducesResponseType<BookResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<BookResponse>> CreateBook(
         CreateBookRequest request,
@@ -55,7 +56,7 @@ public sealed class AdminController(
     }
 
     [HttpPut("books/{id:int}")]
-    [EndpointSummary("Update book metadata and visibility")]
+    [EndpointSummary("Cập nhật thông tin và trạng thái hiển thị của đầu sách")]
     public async Task<ActionResult<BookResponse>> UpdateBook(
         int id,
         UpdateBookRequest request,
@@ -65,7 +66,7 @@ public sealed class AdminController(
     [HttpPost("books/{id:int}/cover")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024 + 128 * 1024)]
-    [EndpointSummary("Upload or replace a book cover image")]
+    [EndpointSummary("Tải lên hoặc thay ảnh bìa đầu sách")]
     [ProducesResponseType<BookResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -80,7 +81,7 @@ public sealed class AdminController(
             cancellationToken));
 
     [HttpPost("books/{id:int}/copies")]
-    [EndpointSummary("Add physical copies to a book")]
+    [EndpointSummary("Thêm bản sao cho một đầu sách")]
     [ProducesResponseType<MessageResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<MessageResponse>> AddCopies(
         int id,
@@ -92,7 +93,7 @@ public sealed class AdminController(
     }
 
     [HttpPut("copies/{id:int}/status")]
-    [EndpointSummary("Update a physical copy status")]
+    [EndpointSummary("Cập nhật trạng thái bản sao sách")]
     public async Task<ActionResult<MessageResponse>> UpdateCopyStatus(
         int id,
         CopyStatusRequest request,
@@ -103,7 +104,7 @@ public sealed class AdminController(
     }
 
     [HttpGet("readers")]
-    [EndpointSummary("Search and filter reader accounts and cards")]
+    [EndpointSummary("Tìm kiếm và lọc tài khoản, thẻ độc giả")]
     [ProducesResponseType<IReadOnlyList<ReaderResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ReaderResponse>>> Readers(
     [FromQuery] string? search,
@@ -112,7 +113,7 @@ public sealed class AdminController(
     Ok(await adminService.GetReadersAsync(search, cardStatus, cancellationToken));
 
     [HttpGet("readers/{id:int}")]
-    [EndpointSummary("Get one reader")]
+    [EndpointSummary("Lấy thông tin một độc giả")]
     public async Task<ActionResult<ReaderResponse>> GetReader(int id, CancellationToken cancellationToken)
     {
         var reader = await adminService.GetReaderAsync(id, cancellationToken);
@@ -120,7 +121,7 @@ public sealed class AdminController(
     }
 
     [HttpPost("readers")]
-    [EndpointSummary("Create a reader account and library card")]
+    [EndpointSummary("Tạo tài khoản và thẻ độc giả")]
     [ProducesResponseType<ReaderResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<ReaderResponse>> CreateReader(
         CreateReaderRequest request,
@@ -131,7 +132,7 @@ public sealed class AdminController(
     }
 
     [HttpPut("readers/{id:int}")]
-    [EndpointSummary("Update a reader profile and card")]
+    [EndpointSummary("Cập nhật hồ sơ và thẻ độc giả")]
     public async Task<ActionResult<ReaderResponse>> UpdateReader(
         int id,
         UpdateReaderRequest request,
@@ -140,7 +141,7 @@ public sealed class AdminController(
 
     [HttpPut("readers/{id:int}/password")]
     [Authorize(Roles = "Admin")]
-    [EndpointSummary("Set a new password for a reader account")]
+    [EndpointSummary("Đặt mật khẩu mới cho tài khoản độc giả")]
     [ProducesResponseType<MessageResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -155,7 +156,7 @@ public sealed class AdminController(
     }
 
     [HttpGet("loans")]
-    [EndpointSummary("List circulation records")]
+    [EndpointSummary("Liệt kê các phiếu mượn trả")]
     [ProducesResponseType<IReadOnlyList<LoanResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<LoanResponse>>> Loans(
         [FromQuery] string? status,
@@ -163,7 +164,7 @@ public sealed class AdminController(
         Ok(await adminService.GetLoansAsync(status, cancellationToken));
 
     [HttpGet("loans/{id:long}")]
-    [EndpointSummary("Get one circulation record")]
+    [EndpointSummary("Lấy thông tin một phiếu mượn trả")]
     public async Task<ActionResult<LoanResponse>> GetLoan(long id, CancellationToken cancellationToken)
     {
         var loan = await adminService.GetLoanAsync(id, cancellationToken);
@@ -171,7 +172,7 @@ public sealed class AdminController(
     }
 
     [HttpPost("loans/checkout")]
-    [EndpointSummary("Check out a copy by card and barcode")]
+    [EndpointSummary("Lập phiếu mượn bằng thẻ độc giả và mã vạch")]
     [ProducesResponseType<LoanResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<LoanResponse>> Checkout(
         CheckoutRequest request,
@@ -182,19 +183,19 @@ public sealed class AdminController(
     }
 
     [HttpPost("loans/return")]
-    [EndpointSummary("Return a copy and assess applicable fines")]
+    [EndpointSummary("Nhận trả bản sao và tính khoản phạt nếu có")]
     public async Task<ActionResult<LoanResponse>> Return(
         ReturnRequest request,
         CancellationToken cancellationToken) =>
         Ok(await adminService.ReturnAsync(request, GetActorId(), cancellationToken));
 
     [HttpPost("loans/{id:long}/renew")]
-    [EndpointSummary("Renew an eligible loan")]
+    [EndpointSummary("Gia hạn phiếu mượn đủ điều kiện")]
     public async Task<ActionResult<LoanResponse>> Renew(long id, CancellationToken cancellationToken) =>
         Ok(await adminService.RenewAsync(id, GetActorId(), cancellationToken));
 
     [HttpGet("fines")]
-    [EndpointSummary("List fines and payment status")]
+    [EndpointSummary("Liệt kê khoản phạt và trạng thái thanh toán")]
     [ProducesResponseType<IReadOnlyList<FineResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<FineResponse>>> Fines(
         [FromQuery] string? status,
@@ -202,7 +203,7 @@ public sealed class AdminController(
         Ok(await adminService.GetFinesAsync(status, cancellationToken));
 
     [HttpPut("fines/{id:long}/collect")]
-    [EndpointSummary("Collect an outstanding fine")]
+    [EndpointSummary("Thu khoản phạt còn nợ")]
     public async Task<ActionResult<FineResponse>> CollectFine(
         long id,
         CollectFineRequest request,
@@ -210,7 +211,7 @@ public sealed class AdminController(
         Ok(await adminService.CollectFineAsync(id, request, GetActorId(), cancellationToken));
 
     [HttpGet("proposals")]
-    [EndpointSummary("List reader purchase proposals")]
+    [EndpointSummary("Liệt kê đề xuất mua sách của độc giả")]
     [ProducesResponseType<IReadOnlyList<ProposalResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ProposalResponse>>> Proposals(
         [FromQuery] string? status,
@@ -218,7 +219,7 @@ public sealed class AdminController(
         Ok(await adminService.GetProposalsAsync(status, cancellationToken));
 
     [HttpPut("proposals/{id:int}/review")]
-    [EndpointSummary("Approve or reject a purchase proposal")]
+    [EndpointSummary("Duyệt hoặc từ chối đề xuất mua sách")]
     public async Task<ActionResult<ProposalResponse>> ReviewProposal(
         int id,
         ReviewProposalRequest request,
@@ -226,14 +227,14 @@ public sealed class AdminController(
         Ok(await adminService.ReviewProposalAsync(id, request, GetActorId(), cancellationToken));
 
     [HttpGet("settings")]
-    [EndpointSummary("List supported system settings")]
+    [EndpointSummary("Liệt kê các thiết lập hệ thống được hỗ trợ")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType<IReadOnlyList<SystemConfigResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<SystemConfigResponse>>> Settings(CancellationToken cancellationToken) =>
         Ok(await adminService.GetConfigsAsync(cancellationToken));
 
     [HttpPut("settings/{key}")]
-    [EndpointSummary("Update a supported system setting")]
+    [EndpointSummary("Cập nhật một thiết lập hệ thống được hỗ trợ")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<SystemConfigResponse>> UpdateSetting(
         string key,
@@ -242,7 +243,7 @@ public sealed class AdminController(
         Ok(await adminService.UpdateConfigAsync(key, request, GetActorId(), cancellationToken));
 
     [HttpGet("activity-logs")]
-    [EndpointSummary("Read paginated administrative activity logs")]
+    [EndpointSummary("Đọc nhật ký hoạt động quản trị theo trang")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType<IReadOnlyList<ActivityLogResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ActivityLogResponse>>> ActivityLogs(
@@ -253,7 +254,7 @@ public sealed class AdminController(
 
     [HttpGet("database-backups")]
     [Authorize(Roles = "Admin")]
-    [EndpointSummary("List available SQL Server database backups")]
+    [EndpointSummary("Liệt kê các bản sao lưu cơ sở dữ liệu SQL Server")]
     [ProducesResponseType<DatabaseBackupStatusResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<DatabaseBackupStatusResponse>> DatabaseBackups(
         CancellationToken cancellationToken) =>
@@ -261,7 +262,7 @@ public sealed class AdminController(
 
     [HttpGet("database-backups/{fileName}")]
     [Authorize(Roles = "Admin")]
-    [EndpointSummary("Get metadata for one database backup")]
+    [EndpointSummary("Lấy thông tin một tệp sao lưu cơ sở dữ liệu")]
     [ProducesResponseType<DatabaseBackupFileResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DatabaseBackupFileResponse>> GetDatabaseBackup(
@@ -271,7 +272,7 @@ public sealed class AdminController(
 
     [HttpPost("database-backups")]
     [Authorize(Roles = "Admin")]
-    [EndpointSummary("Create and verify a LiMS database backup")]
+    [EndpointSummary("Tạo và xác minh bản sao lưu cơ sở dữ liệu LiMS")]
     [ProducesResponseType<DatabaseBackupFileResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<DatabaseBackupFileResponse>> CreateDatabaseBackup(
         CancellationToken cancellationToken)
@@ -282,7 +283,7 @@ public sealed class AdminController(
 
     [HttpPost("database-backups/{fileName}/restore")]
     [Authorize(Roles = "Admin")]
-    [EndpointSummary("Restore a verified LiMS database backup")]
+    [EndpointSummary("Phục hồi cơ sở dữ liệu LiMS từ bản sao lưu đã xác minh")]
     [ProducesResponseType<DatabaseRestoreResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

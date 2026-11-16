@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using LiMS.Api.Contracts;
 using LiMS.Api.Services;
 
 namespace LiMS.Api.Middleware;
@@ -13,47 +13,49 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) :
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var (statusCode, title, detail) = exception switch
+        if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
+            return false;
+
+        var (statusCode, code, message) = exception switch
         {
             KeyNotFoundException => (
                 StatusCodes.Status404NotFound,
-                "Not Found",
+                "NOT_FOUND",
                 exception.Message),
             ArgumentException => (
                 StatusCodes.Status400BadRequest,
-                "Invalid Request",
+                "INVALID_REQUEST",
                 exception.Message),
             BusinessRuleException => (
                 StatusCodes.Status409Conflict,
-                "Conflict",
+                "BUSINESS_RULE_VIOLATION",
                 exception.Message),
             UnauthorizedAccessException => (
                 StatusCodes.Status403Forbidden,
-                "Forbidden",
-                "The current account is not permitted to perform this operation."),
+                "FORBIDDEN",
+                "Tài khoản không có quyền thực hiện thao tác này."),
             DbUpdateConcurrencyException => (
                 StatusCodes.Status409Conflict,
-                "Concurrency Conflict",
-                "The record changed during this operation. Reload it and try again."),
+                "CONCURRENCY_CONFLICT",
+                "Dữ liệu đã thay đổi trong lúc xử lý. Vui lòng tải lại và thử lại."),
             DbUpdateException updateException when IsUniqueConstraintViolation(updateException) => (
                 StatusCodes.Status409Conflict,
-                "Duplicate Record",
-                "A record with the same unique value already exists."),
-            _ => (0, (string?)null, null)
+                "DUPLICATE_RECORD",
+                "Thông tin bị trùng với một bản ghi đã tồn tại."),
+            _ => (
+                StatusCodes.Status500InternalServerError,
+                "INTERNAL_SERVER_ERROR",
+                "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
         };
 
-        if (statusCode == 0)
-            return false;
-
-        logger.LogWarning(exception, "Handled API exception with status {StatusCode}.", statusCode);
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+            logger.LogError(exception, "Unhandled API exception returned {StatusCode}.", statusCode);
+        else
+            logger.LogWarning(exception, "Handled API exception {ErrorCode} with status {StatusCode}.", code, statusCode);
         httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(new ProblemDetails
-        {
-            Status = statusCode,
-            Title = title,
-            Detail = detail,
-            Instance = httpContext.Request.Path
-        }, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            ApiResponse<object?>.Failure(code, message),
+            cancellationToken);
         return true;
     }
 

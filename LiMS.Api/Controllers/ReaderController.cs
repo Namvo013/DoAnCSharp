@@ -6,13 +6,36 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LiMS.Api.Controllers;
 
+/// <summary>Điểm cuối cho các thao tác tự phục vụ của độc giả đã đăng nhập.</summary>
 [ApiController]
 [Authorize(Roles = "Borrower")]
 [Route("api/library")]
 public sealed class ReaderController(IReaderService readerService) : ControllerBase
 {
+    [HttpPut("profile")]
+    [EndpointSummary("Cập nhật thông tin liên hệ của độc giả hiện tại")]
+    [ProducesResponseType<ReaderProfileResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ReaderProfileResponse>> UpdateProfile(
+        UpdateReaderProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var profile = await readerService.UpdateProfileAsync(
+            GetAccountId(),
+            request,
+            cancellationToken);
+        return Ok(new ReaderProfileResponse(
+            profile.AccountId,
+            profile.CardNo,
+            profile.FullName,
+            profile.Email,
+            profile.Role,
+            profile.Phone,
+            profile.CardExpiryDate,
+            profile.CardStatus));
+    }
+
     [HttpGet("reservation/{id:long}")]
-    [EndpointSummary("Get one reservation belonging to the current reader")]
+    [EndpointSummary("Lấy một phiếu đặt giữ của độc giả hiện tại")]
     public async Task<ActionResult<ReservationResponse>> GetReservation(
         long id,
         CancellationToken cancellationToken)
@@ -22,7 +45,7 @@ public sealed class ReaderController(IReaderService readerService) : ControllerB
     }
 
     [HttpPost("reservations")]
-    [EndpointSummary("Reserve an unavailable book")]
+    [EndpointSummary("Đặt giữ một đầu sách hiện đã hết bản sao")]
     [ProducesResponseType<ReservationResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<ReservationResponse>> CreateReservation(
         CreateReservationRequest request,
@@ -33,7 +56,7 @@ public sealed class ReaderController(IReaderService readerService) : ControllerB
     }
 
     [HttpDelete("reservations/{id:long}")]
-    [EndpointSummary("Cancel a reservation belonging to the current reader")]
+    [EndpointSummary("Hủy phiếu đặt giữ của độc giả hiện tại")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> CancelReservation(long id, CancellationToken cancellationToken)
     {
@@ -42,13 +65,13 @@ public sealed class ReaderController(IReaderService readerService) : ControllerB
     }
 
     [HttpGet("proposals")]
-    [EndpointSummary("List the current reader's purchase proposals")]
+    [EndpointSummary("Liệt kê đề xuất mua sách của độc giả hiện tại")]
     [ProducesResponseType<IReadOnlyList<ProposalResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ProposalResponse>>> Proposals(CancellationToken cancellationToken) =>
         Ok(await readerService.GetProposalsAsync(GetAccountId(), cancellationToken));
 
     [HttpGet("proposals/{id:int}")]
-    [EndpointSummary("Get one purchase proposal belonging to the current reader")]
+    [EndpointSummary("Lấy một đề xuất mua sách của độc giả hiện tại")]
     public async Task<ActionResult<ProposalResponse>> GetProposal(int id, CancellationToken cancellationToken)
     {
         var proposal = await readerService.GetProposalAsync(GetAccountId(), id, cancellationToken);
@@ -56,7 +79,7 @@ public sealed class ReaderController(IReaderService readerService) : ControllerB
     }
 
     [HttpPost("proposals")]
-    [EndpointSummary("Submit a book purchase proposal")]
+    [EndpointSummary("Gửi đề xuất bổ sung sách")]
     [ProducesResponseType<ProposalResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<ProposalResponse>> CreateProposal(
         CreateProposalRequest request,
@@ -67,7 +90,7 @@ public sealed class ReaderController(IReaderService readerService) : ControllerB
     }
 
     [HttpPost("loans/{id:long}/renew")]
-    [EndpointSummary("Renew an eligible loan belonging to the current reader")]
+    [EndpointSummary("Gia hạn phiếu mượn đủ điều kiện của độc giả hiện tại")]
     [ProducesResponseType<LoanResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<LoanResponse>> Renew(long id, CancellationToken cancellationToken) =>
         Ok(await readerService.RenewAsync(GetAccountId(), id, cancellationToken));

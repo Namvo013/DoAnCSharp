@@ -45,6 +45,20 @@
             </aside>
             <main>@RenderBody()</main>
         </div>
+        <nav class="bottom-nav" aria-label="Điều hướng trên điện thoại">
+            <a asp-page="/Home" aria-current="@(Context.Request.Path == "/Home" ? "page" : null)">
+                <span class="bottom-nav__icon" aria-hidden="true">⌂</span><span>Trang chủ</span>
+            </a>
+            <a asp-page="/Catalog" aria-current="@(Context.Request.Path == "/Catalog" ? "page" : null)">
+                <span class="bottom-nav__icon" aria-hidden="true">⌕</span><span>Tra cứu</span>
+            </a>
+            <a asp-page="/Loans" aria-current="@(Context.Request.Path == "/Loans" ? "page" : null)">
+                <span class="bottom-nav__icon" aria-hidden="true">▣</span><span>Phiếu mượn</span>
+            </a>
+            <a asp-page="/Profile" aria-current="@(Context.Request.Path == "/Profile" ? "page" : null)">
+                <span class="bottom-nav__icon" aria-hidden="true">♙</span><span>Tài khoản</span>
+            </a>
+        </nav>
     }
     else
     {

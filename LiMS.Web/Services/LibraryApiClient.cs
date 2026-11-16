@@ -153,6 +153,20 @@ public sealed class LibraryApiClient(
         return await response.Content.ReadFromJsonAsync<ApiUser>(cancellationToken: cancellationToken);
     }
 
+    public async Task<ApiUser> UpdateProfileAsync(
+        UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var message = CreateRequest(HttpMethod.Put, "api/library/profile");
+        message.Content = JsonContent.Create(request);
+        using var response = await _client.SendAsync(message, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw await CreateApiExceptionAsync(response, cancellationToken);
+
+        return await response.Content.ReadFromJsonAsync<ApiUser>(cancellationToken: cancellationToken)
+            ?? throw new InvalidDataException("API cập nhật hồ sơ trả về dữ liệu rỗng.");
+    }
+
     public async Task<(bool Succeeded, string Message)> ChangePasswordAsync(
         ChangePasswordRequest request,
         CancellationToken cancellationToken)
@@ -164,14 +178,12 @@ public sealed class LibraryApiClient(
             request.NewPassword
         });
         using var response = await _client.SendAsync(message, cancellationToken);
-        var result = await response.Content.ReadFromJsonAsync<ApiMessage>(cancellationToken: cancellationToken);
-        if (response.IsSuccessStatusCode)
-            return result is null
-                ? throw new InvalidDataException("API đổi mật khẩu trả về dữ liệu rỗng.")
-                : (true, result.Message);
+        if (!response.IsSuccessStatusCode)
+            return (false, await ReadProblemAsync(response, cancellationToken));
 
-        var problem = await ReadProblemAsync(response, cancellationToken);
-        return (false, problem);
+        var result = await response.Content.ReadFromJsonAsync<ApiMessage>(cancellationToken: cancellationToken)
+            ?? throw new InvalidDataException("API đổi mật khẩu trả về dữ liệu rỗng.");
+        return (true, result.Message);
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string uri)
@@ -188,7 +200,8 @@ public sealed class LibraryApiClient(
         CancellationToken cancellationToken)
     {
         var problem = await response.Content.ReadFromJsonAsync<ApiProblem>(cancellationToken: cancellationToken);
-        return problem?.Detail
+        return problem?.Message
+            ?? problem?.Detail
             ?? problem?.Title
             ?? $"Yêu cầu thất bại với mã HTTP {(int)response.StatusCode}.";
     }
@@ -204,5 +217,5 @@ public sealed class LibraryApiClient(
         public HttpStatusCode StatusCode { get; } = statusCode;
     }
 
-    private sealed record ApiProblem(string? Title, string? Detail);
+    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail);
 }

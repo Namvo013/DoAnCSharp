@@ -2,6 +2,7 @@ using LiMS.Api.Contracts;
 
 namespace LiMS.Api.Services;
 
+/// <summary>Các thao tác nghiệp vụ quản trị dành cho nhân viên thư viện.</summary>
 public interface IAdminService
 {
     Task<IReadOnlyList<BookResponse>> GetBooksAsync(string? search, CancellationToken cancellationToken);

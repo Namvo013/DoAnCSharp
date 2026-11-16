@@ -1,19 +1,39 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
+using LiMS.Api.Contracts;
 using LiMS.Api.Data;
 using LiMS.Api.Middleware;
 using LiMS.Api.Models;
 using LiMS.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers().AddJsonOptions(options =>
-    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(entry => entry.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    entry => entry.Key,
+                    entry => entry.Value!.Errors
+                        .Select(_ => "Giá trị không hợp lệ hoặc đang bị thiếu.")
+                        .ToArray());
+            return new BadRequestObjectResult(ApiResponse<object?>.Failure(
+                "VALIDATION_ERROR",
+                "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra các trường được báo lỗi.",
+                errors));
+        };
+    })
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
@@ -94,7 +114,21 @@ if (generatedDevelopmentKey)
     app.Logger.LogWarning("No JWT signing key configured. A temporary development key was generated; existing tokens will expire when the API restarts.");
 
 app.UseExceptionHandler();
-app.UseStatusCodePages();
+app.UseStatusCodePages(statusCodeContext =>
+{
+    var response = statusCodeContext.HttpContext.Response;
+    var (code, message) = response.StatusCode switch
+    {
+        StatusCodes.Status401Unauthorized => ("UNAUTHORIZED", "Vui lòng đăng nhập để tiếp tục."),
+        StatusCodes.Status403Forbidden => ("FORBIDDEN", "Tài khoản không có quyền thực hiện thao tác này."),
+        StatusCodes.Status404NotFound => ("NOT_FOUND", "Không tìm thấy tài nguyên được yêu cầu."),
+        StatusCodes.Status405MethodNotAllowed => ("METHOD_NOT_ALLOWED", "Phương thức yêu cầu không được hỗ trợ."),
+        _ => ("REQUEST_FAILED", "Yêu cầu không thể hoàn tất.")
+    };
+    return response.WriteAsJsonAsync(
+        ApiResponse<object?>.Failure(code, message),
+        statusCodeContext.HttpContext.RequestAborted);
+});
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 

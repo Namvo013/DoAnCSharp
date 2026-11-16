@@ -244,7 +244,8 @@ public sealed class AdminApiClient : IDisposable
         CancellationToken cancellationToken)
     {
         var problem = await response.Content.ReadFromJsonAsync<ApiProblem>(cancellationToken: cancellationToken);
-        var message = problem?.Detail
+        var message = problem?.Message
+            ?? problem?.Detail
             ?? problem?.Title
             ?? $"Yêu cầu thất bại với mã HTTP {(int)response.StatusCode}.";
         return new AdminApiException(response.StatusCode, message);
@@ -264,4 +265,6 @@ public sealed class AdminApiClient : IDisposable
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
     }
+
+    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail);
 }

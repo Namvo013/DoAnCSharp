@@ -6,13 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LiMS.Api.Controllers;
 
+/// <summary>Điểm cuối xác thực và quản lý thông tin đăng nhập.</summary>
 [ApiController]
 [Route("api/auth")]
 public sealed class AuthController(IAuthService authService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpPost("login")]
-    [EndpointSummary("Authenticate an account and issue a JWT")]
+    [EndpointSummary("Xác thực tài khoản và cấp mã truy cập JWT")]
     [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoginResponse>> Login(
@@ -21,13 +22,15 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     {
         var result = await authService.LoginAsync(request, cancellationToken);
         return result is null
-            ? Unauthorized(new ProblemDetails { Title = "Thông tin đăng nhập không hợp lệ." })
+            ? Unauthorized(ApiResponse<object?>.Failure(
+                "INVALID_CREDENTIALS",
+                "Tài khoản hoặc mật khẩu không chính xác."))
             : Ok(result);
     }
 
     [Authorize]
     [HttpPost("change-password")]
-    [EndpointSummary("Change the password of the authenticated account")]
+    [EndpointSummary("Đổi mật khẩu của tài khoản hiện đã xác thực")]
     [ProducesResponseType<MessageResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<MessageResponse>> ChangePassword(
@@ -41,6 +44,8 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         var changed = await authService.ChangePasswordAsync(accountId, request, cancellationToken);
         return changed
             ? Ok(new MessageResponse("Đổi mật khẩu thành công."))
-            : BadRequest(new ProblemDetails { Title = "Mật khẩu hiện tại không đúng." });
+            : BadRequest(ApiResponse<object?>.Failure(
+                "CURRENT_PASSWORD_INVALID",
+                "Mật khẩu hiện tại không chính xác."));
     }
 }

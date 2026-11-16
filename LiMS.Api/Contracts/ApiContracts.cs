@@ -2,7 +2,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LiMS.Api.Contracts;
 
-/// <summary>Credentials submitted to sign in.</summary>
+/// <summary>Phản hồi thống nhất cho các lỗi API; dữ liệu thành công giữ nguyên để tương thích client.</summary>
+public sealed record ApiResponse<T>(
+    bool Success,
+    string Code,
+    string Message,
+    T? Data = default,
+    IReadOnlyDictionary<string, string[]>? Errors = null)
+{
+    public static ApiResponse<T> Failure(
+        string code,
+        string message,
+        IReadOnlyDictionary<string, string[]>? errors = null) =>
+        new(false, code, message, default, errors);
+}
+
+/// <summary>Thông tin đăng nhập được gửi để xác thực.</summary>
 public sealed record LoginRequest
 {
     [Required, StringLength(100)]
@@ -12,7 +27,7 @@ public sealed record LoginRequest
     public required string Password { get; init; }
 }
 
-/// <summary>Signed-in account profile and bearer token.</summary>
+/// <summary>Hồ sơ tài khoản đã đăng nhập và mã truy cập.</summary>
 public sealed record LoginResponse(
     int Id,
     string StudentCode,
@@ -22,7 +37,7 @@ public sealed record LoginResponse(
     string AccessToken,
     DateTimeOffset ExpiresAt);
 
-/// <summary>Values required to change the current account password.</summary>
+/// <summary>Thông tin cần thiết để đổi mật khẩu tài khoản hiện tại.</summary>
 public sealed record ChangePasswordRequest
 {
     [Required, StringLength(256, MinimumLength = 6)]
@@ -32,10 +47,10 @@ public sealed record ChangePasswordRequest
     public required string NewPassword { get; init; }
 }
 
-/// <summary>A user-facing operation result.</summary>
+/// <summary>Kết quả thao tác hiển thị cho người dùng.</summary>
 public sealed record MessageResponse(string Message);
 
-/// <summary>Book metadata and current physical-copy counts.</summary>
+/// <summary>Thông tin đầu sách và số lượng bản sao hiện có.</summary>
 public sealed record BookResponse(
     int Id,
     string Title,
@@ -50,17 +65,17 @@ public sealed record BookResponse(
     string? Description,
     string? CoverImageUrl);
 
-/// <summary>Barcode, status, and parent book for one physical copy.</summary>
+/// <summary>Mã vạch, trạng thái và đầu sách của một bản sao.</summary>
 public sealed record BookCopyResponse(int Id, int BookId, string Barcode, string Status);
 
-/// <summary>Image file uploaded as the cover of a book.</summary>
+/// <summary>Tệp ảnh bìa được tải lên cho một đầu sách.</summary>
 public sealed record UploadBookCoverRequest
 {
     [Required]
     public required IFormFile File { get; init; }
 }
 
-/// <summary>Book metadata and the number of copies to register.</summary>
+/// <summary>Thông tin đầu sách và số bản sao cần ghi nhận.</summary>
 public sealed record CreateBookRequest
 {
     [Required, StringLength(100)]
@@ -91,7 +106,7 @@ public sealed record CreateBookRequest
     public int InitialCopies { get; init; }
 }
 
-/// <summary>Updated book metadata and visibility.</summary>
+/// <summary>Thông tin đầu sách và trạng thái hiển thị sau cập nhật.</summary>
 public sealed record UpdateBookRequest
 {
     [Required, StringLength(100)]
@@ -121,7 +136,7 @@ public sealed record UpdateBookRequest
     public bool IsActive { get; init; }
 }
 
-/// <summary>Request to register a batch of physical book copies.</summary>
+/// <summary>Yêu cầu ghi nhận một lô bản sao sách.</summary>
 public sealed record CreateCopiesRequest
 {
     [Range(1, 1000)]
@@ -131,14 +146,14 @@ public sealed record CreateCopiesRequest
     public required string BarcodePrefix { get; init; }
 }
 
-/// <summary>Requested status for a physical copy.</summary>
+/// <summary>Trạng thái cần đặt cho một bản sao sách.</summary>
 public sealed record CopyStatusRequest
 {
     [Required, StringLength(20)]
     public required string Status { get; init; }
 }
 
-/// <summary>Information needed to create a reader account and library card.</summary>
+/// <summary>Thông tin cần thiết để tạo tài khoản và thẻ độc giả.</summary>
 public sealed record CreateReaderRequest
 {
     [Required, StringLength(50)]
@@ -166,7 +181,7 @@ public sealed record CreateReaderRequest
     public int CardValidityMonths { get; init; } = 48;
 }
 
-/// <summary>Editable reader profile, card status, and borrowing limit.</summary>
+/// <summary>Hồ sơ độc giả, trạng thái thẻ và giới hạn mượn có thể chỉnh sửa.</summary>
 public sealed record UpdateReaderRequest
 {
     [Required, StringLength(100)]
@@ -188,14 +203,14 @@ public sealed record UpdateReaderRequest
     public bool IsActive { get; init; }
 }
 
-/// <summary>New password set by an administrator for a reader account.</summary>
+/// <summary>Mật khẩu mới do quản trị viên đặt cho tài khoản độc giả.</summary>
 public sealed record ResetReaderPasswordRequest
 {
     [Required, StringLength(256, MinimumLength = 8)]
     public required string NewPassword { get; init; }
 }
 
-/// <summary>Reader account and library-card details.</summary>
+/// <summary>Thông tin tài khoản và thẻ thư viện của độc giả.</summary>
 public sealed record ReaderResponse(
     int ReaderId,
     int AccountId,
@@ -211,7 +226,31 @@ public sealed record ReaderResponse(
     bool IsActive,
     string Role);
 
-/// <summary>Book barcode and reader card used for checkout.</summary>
+/// <summary>Hồ sơ tài khoản và trạng thái thẻ của độc giả hiện tại.</summary>
+public sealed record ReaderProfileResponse(
+    int Id,
+    string StudentCode,
+    string FullName,
+    string Email,
+    string Role,
+    string? Phone,
+    DateOnly CardExpiryDate,
+    string CardStatus);
+
+/// <summary>Thông tin hồ sơ mà độc giả được phép tự cập nhật.</summary>
+public sealed record UpdateReaderProfileRequest
+{
+    [Required, StringLength(100)]
+    public required string FullName { get; init; }
+
+    [Required, EmailAddress, StringLength(100)]
+    public required string Email { get; init; }
+
+    [Phone, StringLength(20)]
+    public string? Phone { get; init; }
+}
+
+/// <summary>Mã vạch sách và thẻ độc giả dùng để lập phiếu mượn.</summary>
 public sealed record CheckoutRequest
 {
     [Required, StringLength(50)]
@@ -223,7 +262,7 @@ public sealed record CheckoutRequest
     public long? ReservationId { get; init; }
 }
 
-/// <summary>Barcode and optional fine details recorded on return.</summary>
+/// <summary>Mã vạch và thông tin phạt bổ sung khi nhận trả sách.</summary>
 public sealed record ReturnRequest
 {
     [Required, StringLength(50)]
@@ -236,13 +275,13 @@ public sealed record ReturnRequest
     public decimal AdditionalFineAmount { get; init; }
 }
 
-/// <summary>Identifies a loan that should be renewed.</summary>
+/// <summary>Mã phiếu mượn cần gia hạn.</summary>
 public sealed record RenewLoanRequest
 {
     public long LoanId { get; init; }
 }
 
-/// <summary>Loan information returned to API clients.</summary>
+/// <summary>Thông tin phiếu mượn trả về cho client API.</summary>
 public sealed record LoanResponse(
     long Id,
     int ReaderId,
@@ -260,7 +299,7 @@ public sealed record LoanResponse(
     short RenewCount,
     string Status);
 
-/// <summary>Loan summary shown to the reader who owns the record.</summary>
+/// <summary>Tóm tắt phiếu mượn hiển thị cho độc giả sở hữu phiếu.</summary>
 public sealed record ReaderLoanResponse(
     long Id,
     int UserId,
@@ -272,7 +311,7 @@ public sealed record ReaderLoanResponse(
     int RenewalCount,
     BookResponse? Book);
 
-/// <summary>Fine amount and collection details.</summary>
+/// <summary>Số tiền phạt và thông tin thu phạt.</summary>
 public sealed record FineResponse(
     long Id,
     long LoanId,
@@ -284,7 +323,7 @@ public sealed record FineResponse(
     string Status,
     DateTimeOffset? PaidAt);
 
-/// <summary>Full or implicit payment of an outstanding fine.</summary>
+/// <summary>Yêu cầu thanh toán toàn bộ khoản phạt còn nợ.</summary>
 public sealed record CollectFineRequest
 {
     [Range(0, 100000000)]
@@ -294,7 +333,7 @@ public sealed record CollectFineRequest
     public required string Reason { get; init; }
 }
 
-/// <summary>Decision and optional note for a purchase proposal.</summary>
+/// <summary>Quyết định và ghi chú tùy chọn cho đề xuất mua sách.</summary>
 public sealed record ReviewProposalRequest
 {
     [Required]
@@ -305,7 +344,7 @@ public sealed record ReviewProposalRequest
     public string? Note { get; init; }
 }
 
-/// <summary>Reader purchase proposal and its review status.</summary>
+/// <summary>Đề xuất mua sách của độc giả và trạng thái xét duyệt.</summary>
 public sealed record ProposalResponse(
     int ProposalId,
     string ReaderName,
@@ -319,7 +358,7 @@ public sealed record ProposalResponse(
     DateTimeOffset? ReviewedAt,
     string? ReviewNote);
 
-/// <summary>Aggregate counts and circulation statistics for the admin dashboard.</summary>
+/// <summary>Các số liệu tổng hợp phục vụ trang tổng quan quản trị.</summary>
 public sealed record DashboardResponse(
     int TotalBooks,
     int TotalCopies,
@@ -336,46 +375,46 @@ public sealed record DashboardResponse(
     IReadOnlyList<PopularBookResponse> PopularBooks,
     IReadOnlyList<MonthlyCirculationReportResponse> MonthlyReports);
 
-/// <summary>Loan total for one popular book.</summary>
+/// <summary>Số lượt mượn của một đầu sách phổ biến.</summary>
 public sealed record PopularBookResponse(int BookId, string Title, int LoanCount);
 
-/// <summary>Monthly loan, return, and collected-fine totals for dashboard reporting.</summary>
+/// <summary>Tổng lượt mượn, trả và tiền phạt đã thu theo tháng.</summary>
 public sealed record MonthlyCirculationReportResponse(
     string Month,
     int BorrowCount,
     int ReturnCount,
     decimal CollectedFines);
 
-/// <summary>Summary of the SQL Server backup location and available backup files.</summary>
+/// <summary>Thư mục sao lưu SQL Server và danh sách tệp hiện có.</summary>
 public sealed record DatabaseBackupStatusResponse(
     string DatabaseName,
     string BackupDirectory,
     IReadOnlyList<DatabaseBackupFileResponse> Backups);
 
-/// <summary>Metadata for one LiMS database backup file.</summary>
+/// <summary>Thông tin một tệp sao lưu cơ sở dữ liệu LiMS.</summary>
 public sealed record DatabaseBackupFileResponse(
     string FileName,
     long SizeBytes,
     DateTimeOffset CreatedAt);
 
-/// <summary>Result of restoring a LiMS database backup.</summary>
+/// <summary>Kết quả phục hồi cơ sở dữ liệu LiMS từ bản sao lưu.</summary>
 public sealed record DatabaseRestoreResponse(
     string DatabaseName,
     string RestoredFileName,
     string SafetyBackupFileName,
     DateTimeOffset CompletedAt);
 
-/// <summary>Confirms a restore by requiring the exact target database name.</summary>
+/// <summary>Xác nhận phục hồi bằng cách nhập chính xác tên cơ sở dữ liệu.</summary>
 public sealed record RestoreDatabaseBackupRequest
 {
     [Required, MaxLength(128)]
     public required string ConfirmDatabaseName { get; init; }
 }
 
-/// <summary>Business rule stored in system configuration.</summary>
+/// <summary>Quy tắc nghiệp vụ được lưu trong cấu hình hệ thống.</summary>
 public sealed record SystemConfigResponse(string Key, string Value, string? Description, DateTimeOffset UpdatedAt);
 
-/// <summary>Replacement value and description for a supported business setting.</summary>
+/// <summary>Giá trị và mô tả mới cho một thiết lập nghiệp vụ được hỗ trợ.</summary>
 public sealed record UpdateSystemConfigRequest
 {
     [Required, StringLength(1000)]
@@ -385,7 +424,7 @@ public sealed record UpdateSystemConfigRequest
     public string? Description { get; init; }
 }
 
-/// <summary>Audited administrative action.</summary>
+/// <summary>Thao tác quản trị được ghi nhận vào nhật ký.</summary>
 public sealed record ActivityLogResponse(
     long Id,
     string Username,
@@ -395,7 +434,7 @@ public sealed record ActivityLogResponse(
     string? Detail,
     DateTimeOffset CreatedAt);
 
-/// <summary>Reader reservation and associated book.</summary>
+/// <summary>Thông tin đặt giữ và đầu sách liên quan.</summary>
 public sealed record ReservationResponse(
     long Id,
     int BookId,
@@ -404,7 +443,7 @@ public sealed record ReservationResponse(
     DateTimeOffset ExpireAt,
     string Status);
 
-/// <summary>Reservation summary shown to the reader who owns the record.</summary>
+/// <summary>Tóm tắt phiếu đặt giữ của độc giả hiện tại.</summary>
 public sealed record ReaderReservationResponse(
     long Id,
     int BookId,
@@ -413,21 +452,21 @@ public sealed record ReaderReservationResponse(
     string Status,
     BookResponse? Book);
 
-/// <summary>Notification history returned to the current reader.</summary>
+/// <summary>Lịch sử thông báo của độc giả hiện tại.</summary>
 public sealed record ReaderNotificationResponse(
     long Id,
     string Message,
     DateTimeOffset CreatedAt,
     bool IsRead);
 
-/// <summary>Book identifier requested for reservation.</summary>
+/// <summary>Mã đầu sách cần đặt giữ.</summary>
 public sealed record CreateReservationRequest
 {
     [Range(1, int.MaxValue)]
     public int BookId { get; init; }
 }
 
-/// <summary>Reader-submitted request to acquire a book for the library.</summary>
+/// <summary>Đề xuất bổ sung đầu sách do độc giả gửi.</summary>
 public sealed record CreateProposalRequest
 {
     [Required, StringLength(255)]

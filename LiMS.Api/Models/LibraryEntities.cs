@@ -1,5 +1,6 @@
 namespace LiMS.Api.Models;
 
+/// <summary>Danh sách vai trò được phép đăng nhập vào hệ thống.</summary>
 public static class AccountRoles
 {
     public const string Borrower = "Borrower";
@@ -7,6 +8,7 @@ public static class AccountRoles
     public const string Admin = "Admin";
 }
 
+/// <summary>Các trạng thái chuẩn dùng cho hồ sơ và nghiệp vụ thư viện.</summary>
 public static class RecordStatuses
 {
     public const string Active = "Active";
@@ -28,6 +30,7 @@ public static class RecordStatuses
     public const string Rejected = "Rejected";
 }
 
+/// <summary>Tài khoản xác thực và thông tin định danh chung.</summary>
 public sealed class Account
 {
     public int AccountId { get; set; }
@@ -44,6 +47,7 @@ public sealed class Account
     public ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 }
 
+/// <summary>Thẻ độc giả và quan hệ tới các phiếu mượn, đặt giữ.</summary>
 public sealed class Reader
 {
     public int ReaderId { get; set; }
@@ -60,6 +64,7 @@ public sealed class Reader
     public ICollection<EmailLog> EmailLogs { get; set; } = new List<EmailLog>();
 }
 
+/// <summary>Hồ sơ thủ thư chịu trách nhiệm ghi nhận nghiệp vụ tại quầy.</summary>
 public sealed class Librarian
 {
     public int LibrarianId { get; set; }
@@ -71,6 +76,7 @@ public sealed class Librarian
     public ICollection<PurchaseProposal> ReviewedProposals { get; set; } = new List<PurchaseProposal>();
 }
 
+/// <summary>Nhật ký kiểm toán các thao tác trên dữ liệu thư viện.</summary>
 public sealed class ActivityLog
 {
     public long LogId { get; set; }
@@ -83,6 +89,7 @@ public sealed class ActivityLog
     public Account Account { get; set; } = null!;
 }
 
+/// <summary>Giá trị cấu hình cho các quy tắc nghiệp vụ của thư viện.</summary>
 public sealed class SystemConfig
 {
     public required string ConfigKey { get; set; }
@@ -91,6 +98,7 @@ public sealed class SystemConfig
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>Thể loại dùng để phân nhóm đầu sách.</summary>
 public sealed class Category
 {
     public int CategoryId { get; set; }
@@ -98,6 +106,7 @@ public sealed class Category
     public ICollection<Book> Books { get; set; } = new List<Book>();
 }
 
+/// <summary>Thông tin thư mục của một đầu sách.</summary>
 public sealed class Book
 {
     public int BookId { get; set; }
@@ -117,6 +126,7 @@ public sealed class Book
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 }
 
+/// <summary>Một bản sao vật lý có mã vạch và trạng thái riêng.</summary>
 public sealed class BookCopy
 {
     public int CopyId { get; set; }
@@ -128,6 +138,7 @@ public sealed class BookCopy
     public ICollection<Loan> Loans { get; set; } = new List<Loan>();
 }
 
+/// <summary>Yêu cầu của độc giả để giữ một đầu sách đang được mượn.</summary>
 public sealed class Reservation
 {
     public long ReservationId { get; set; }
@@ -142,6 +153,7 @@ public sealed class Reservation
     public ICollection<EmailLog> EmailLogs { get; set; } = new List<EmailLog>();
 }
 
+/// <summary>Phiếu mượn gắn với một bản sao và một độc giả.</summary>
 public sealed class Loan
 {
     public long LoanId { get; set; }
@@ -162,6 +174,7 @@ public sealed class Loan
     public ICollection<EmailLog> EmailLogs { get; set; } = new List<EmailLog>();
 }
 
+/// <summary>Khoản phạt phát sinh từ phiếu mượn.</summary>
 public sealed class Fine
 {
     public long FineId { get; set; }
@@ -175,6 +188,7 @@ public sealed class Fine
     public Librarian? Collector { get; set; }
 }
 
+/// <summary>Đề xuất bổ sung đầu sách do độc giả gửi.</summary>
 public sealed class PurchaseProposal
 {
     public int ProposalId { get; set; }
@@ -191,6 +205,7 @@ public sealed class PurchaseProposal
     public Librarian? Reviewer { get; set; }
 }
 
+/// <summary>Thông tin ghi nhận các thông báo gửi tới độc giả.</summary>
 public sealed class EmailLog
 {
     public long EmailId { get; set; }

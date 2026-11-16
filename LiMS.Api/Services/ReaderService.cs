@@ -82,6 +82,45 @@ public sealed class ReaderService(
                 proposal.ReviewNote);
     }
 
+    public async Task<ReaderProfileData> UpdateProfileAsync(
+        int accountId,
+        UpdateReaderProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var reader = await db.Readers.Include(item => item.Account)
+            .SingleOrDefaultAsync(item => item.AccountId == accountId, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ độc giả.");
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (await db.Accounts.AnyAsync(
+                account => account.AccountId != accountId && account.Email.ToLower() == email,
+                cancellationToken))
+            throw new BusinessRuleException("Email này đã được tài khoản khác sử dụng.");
+
+        reader.Account.FullName = request.FullName.Trim();
+        reader.Account.Email = email;
+        reader.Account.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        db.ActivityLogs.Add(new ActivityLog
+        {
+            AccountId = accountId,
+            Action = "UpdateProfile",
+            TargetTable = "ACCOUNT",
+            TargetId = accountId,
+            Detail = "Độc giả cập nhật thông tin cá nhân."
+        });
+        await db.SaveChangesAsync(cancellationToken);
+
+        return new ReaderProfileData(
+            reader.ReaderId,
+            reader.AccountId,
+            reader.CardNo,
+            reader.Account.FullName,
+            reader.Account.Email,
+            reader.Account.Role,
+            reader.Account.Phone,
+            reader.CardExpiryDate,
+            reader.CardStatus);
+    }
+
     public async Task<ReservationResponse> CreateReservationAsync(
         int accountId,
         CreateReservationRequest request,

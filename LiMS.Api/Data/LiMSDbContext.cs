@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LiMS.Api.Data;
 
+/// <summary>Ngữ cảnh EF Core ánh xạ các thực thể và quan hệ của LiMS.</summary>
 public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbContext(options)
 {
     public DbSet<Account> Accounts => Set<Account>();

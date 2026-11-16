@@ -9,7 +9,10 @@ public sealed record ApiUser(
     string? Email,
     string Role,
     string? AccessToken = null,
-    DateTimeOffset? ExpiresAt = null);
+    DateTimeOffset? ExpiresAt = null,
+    string? Phone = null,
+    DateOnly? CardExpiryDate = null,
+    string? CardStatus = null);
 
 public sealed record ApiBook(
     int Id,
@@ -54,6 +57,8 @@ public sealed record ChangePasswordRequest(
     string StudentCode,
     string CurrentPassword,
     string NewPassword);
+
+public sealed record UpdateProfileRequest(string FullName, string Email, string? Phone);
 
 public sealed record ApiMessage(string Message);
 

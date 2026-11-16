@@ -2,12 +2,14 @@ using LiMS.Web.Models;
 using LiMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using QRCoder;
 
 namespace LiMS.Web.Pages;
 
 public class HomeModel(LibraryApiClient libraryApi) : PageModel
 {
     public string StudentCode { get; private set; } = "";
+    public string FullName { get; private set; } = "";
     public string FirstName { get; private set; } = "";
     public string TodayWeekday { get; private set; } = "";
     public string TodayLabel { get; private set; } = "";
@@ -23,8 +25,8 @@ public class HomeModel(LibraryApiClient libraryApi) : PageModel
         if (string.IsNullOrEmpty(StudentCode))
             return RedirectToPage("/Index");
 
-        var fullName = HttpContext.Session.GetString("FullName") ?? "";
-        FirstName = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "bạn";
+        FullName = HttpContext.Session.GetString("FullName") ?? "";
+        FirstName = FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "bạn";
         var vietnameseNow = VietnamTime.Convert(DateTimeOffset.UtcNow);
         TodayWeekday = vietnameseNow.ToString("dddd", new System.Globalization.CultureInfo("vi-VN"));
         TodayLabel = $"{vietnameseNow.Day} tháng {vietnameseNow.Month}, {vietnameseNow.Year}";
@@ -34,6 +36,20 @@ public class HomeModel(LibraryApiClient libraryApi) : PageModel
             .Where(LoansModel.IsActive)
             .ToList();
         return Page();
+    }
+
+    public IActionResult OnGetQr()
+    {
+        var studentCode = HttpContext.Session.GetString("StudentCode");
+        if (string.IsNullOrWhiteSpace(studentCode))
+            return Unauthorized();
+
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(studentCode, QRCodeGenerator.ECCLevel.Q);
+        var qrCode = new PngByteQRCode(data);
+        Response.Headers["Cache-Control"] = "private, no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(qrCode.GetGraphic(8), "image/png");
     }
 
     public string RemainingDays(DateTimeOffset dueDate)
