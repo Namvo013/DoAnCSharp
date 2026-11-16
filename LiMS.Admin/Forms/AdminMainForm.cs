@@ -19,30 +19,56 @@ public sealed class AdminMainForm : Form
     private readonly DataGridView _logsGrid = CreateGrid();
     private string _bookSearch = "";
     private string _readerSearch = "";
-    private readonly Label _dashboard = new()
+    private readonly Label _totalBooksMetric = CreateMetricValue();
+    private readonly Label _totalCopiesMetric = CreateMetricValue();
+    private readonly Label _availableCopiesMetric = CreateMetricValue();
+    private readonly Label _activeReadersMetric = CreateMetricValue();
+    private readonly Label _activeLoansMetric = CreateMetricValue();
+    private readonly Label _overdueLoansMetric = CreateMetricValue();
+    private readonly Label _pendingReservationsMetric = CreateMetricValue();
+    private readonly Label _pendingProposalsMetric = CreateMetricValue();
+    private readonly Label _unpaidFinesMetric = CreateMetricValue();
+    private readonly Label _collectedFinesMetric = CreateMetricValue();
+    private readonly ListBox _popularBooks = new()
     {
         Dock = DockStyle.Fill,
-        Padding = new Padding(30),
-        Font = new Font("Segoe UI", 13),
-        TextAlign = ContentAlignment.TopLeft
+        BackColor = AdminTheme.Surface,
+        ForeColor = AdminTheme.Text,
+        BorderStyle = BorderStyle.None,
+        Font = new Font("Segoe UI", 10F),
+        IntegralHeight = false
     };
+    private readonly Control _dashboard;
 
     public AdminMainForm(AdminApiClient api, LoginResponse user)
     {
         _api = api;
         _user = user;
+        _dashboard = CreateDashboardContent();
         FormClosed += (_, _) => _api.Dispose();
+        AdminTheme.StyleForm(this);
         Text = "LiMS - Quản trị thư viện";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(1050, 680);
         Size = new Size(1380, 850);
 
+        _tabs.DrawMode = TabDrawMode.OwnerDrawFixed;
+        _tabs.SizeMode = TabSizeMode.Fixed;
+        _tabs.ItemSize = new Size(136, 40);
+        _tabs.DrawItem += DrawTab;
         BuildTabs();
-        var header = new Panel { Dock = DockStyle.Top, Height = 58, Padding = new Padding(16, 10, 16, 8) };
+        var header = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 68,
+            Padding = new Padding(22, 12, 18, 10),
+            BackColor = AdminTheme.Surface
+        };
         var title = new Label
         {
-            Text = $"Quản trị thư viện  |  {_user.FullName} ({_user.Role})",
+            Text = $"LiMS  /  QUẢN TRỊ THƯ VIỆN     {_user.FullName}  ·  {_user.Role}",
             AutoSize = true,
+            ForeColor = AdminTheme.Text,
             Font = new Font("Segoe UI", 12, FontStyle.Bold),
             Dock = DockStyle.Left
         };
@@ -51,11 +77,14 @@ public sealed class AdminMainForm : Form
             Dock = DockStyle.Right,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false,
-            AutoSize = true
+            AutoSize = true,
+            BackColor = AdminTheme.Surface
         };
-        var logout = new Button { Text = "Đăng xuất", AutoSize = true };
+        var logout = new Button { Text = "Đăng xuất", AutoSize = true, Height = 36 };
+        AdminTheme.StyleButton(logout);
         logout.Click += (_, _) => Close();
-        var changePassword = new Button { Text = "Đổi mật khẩu", AutoSize = true };
+        var changePassword = new Button { Text = "Đổi mật khẩu", AutoSize = true, Height = 36 };
+        AdminTheme.StyleButton(changePassword);
         changePassword.Click += async (_, _) => await RunAsync(ChangePasswordAsync);
         actions.Controls.Add(logout);
         actions.Controls.Add(changePassword);
@@ -93,10 +122,183 @@ public sealed class AdminMainForm : Form
 
     private void AddDashboardPage()
     {
-        var page = new TabPage("Tổng quan") { Tag = (Func<Task>)RefreshDashboardAsync };
+        var page = new TabPage("Tổng quan")
+        {
+            Tag = (Func<Task>)RefreshDashboardAsync,
+            BackColor = AdminTheme.Canvas
+        };
         page.Controls.Add(_dashboard);
         page.Controls.Add(CreateToolbar(("Làm mới", RefreshDashboardAsync)));
         _tabs.TabPages.Add(page);
+    }
+
+    private Control CreateDashboardContent()
+    {
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = AdminTheme.Canvas,
+            Padding = new Padding(18, 14, 18, 18),
+            ColumnCount = 1,
+            RowCount = 3
+        };
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 230));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var heading = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = AdminTheme.Canvas
+        };
+        heading.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        heading.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        heading.Controls.Add(new Label
+        {
+            Text = "TRUNG TÂM ĐIỀU HÀNH",
+            Dock = DockStyle.Fill,
+            ForeColor = AdminTheme.Text,
+            Font = new Font("Segoe UI", 18F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft
+        }, 0, 0);
+        heading.Controls.Add(new Label
+        {
+            Text = "Tình hình hoạt động thư viện theo thời gian thực",
+            Dock = DockStyle.Fill,
+            ForeColor = AdminTheme.Muted,
+            Font = new Font("Segoe UI", 9.5F),
+            TextAlign = ContentAlignment.MiddleLeft
+        }, 0, 1);
+        layout.Controls.Add(heading, 0, 0);
+
+        var metrics = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 5,
+            RowCount = 2,
+            BackColor = AdminTheme.Canvas
+        };
+        for (var column = 0; column < metrics.ColumnCount; column++)
+            metrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+        for (var row = 0; row < metrics.RowCount; row++)
+            metrics.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+
+        var metricCards = new (string Title, Label Value)[]
+        {
+            ("Đầu sách", _totalBooksMetric),
+            ("Tổng bản sao", _totalCopiesMetric),
+            ("Sẵn sàng", _availableCopiesMetric),
+            ("Độc giả hoạt động", _activeReadersMetric),
+            ("Phiếu mượn mở", _activeLoansMetric),
+            ("Phiếu quá hạn", _overdueLoansMetric),
+            ("Đặt giữ đang chờ", _pendingReservationsMetric),
+            ("Đề xuất đang chờ", _pendingProposalsMetric),
+            ("Phạt chưa thu", _unpaidFinesMetric),
+            ("Đã thu", _collectedFinesMetric)
+        };
+        for (var index = 0; index < metricCards.Length; index++)
+        {
+            var (title, value) = metricCards[index];
+            metrics.Controls.Add(CreateMetricCard(title, value), index % 5, index / 5);
+        }
+        layout.Controls.Add(metrics, 0, 1);
+
+        var popularCard = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(16, 10, 16, 12),
+            BackColor = AdminTheme.Surface,
+            Margin = new Padding(6, 8, 6, 4)
+        };
+        popularCard.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+        popularCard.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        popularCard.Controls.Add(new Label
+        {
+            Text = "SÁCH ĐƯỢC MƯỢN NHIỀU",
+            Dock = DockStyle.Fill,
+            ForeColor = AdminTheme.Accent,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft
+        }, 0, 0);
+        popularCard.Controls.Add(_popularBooks, 0, 1);
+        layout.Controls.Add(popularCard, 0, 2);
+
+        return layout;
+    }
+
+    private static Panel CreateMetricCard(string title, Label value)
+    {
+        var card = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = AdminTheme.Surface,
+            BorderStyle = BorderStyle.FixedSingle,
+            Margin = new Padding(5)
+        };
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 2,
+            Padding = new Padding(12, 8, 8, 8),
+            BackColor = AdminTheme.Surface
+        };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 3));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        var accent = new Panel { Dock = DockStyle.Fill, BackColor = AdminTheme.Accent };
+        content.Controls.Add(accent, 0, 0);
+        content.SetRowSpan(accent, 2);
+        content.Controls.Add(new Label
+        {
+            Text = title.ToUpperInvariant(),
+            Dock = DockStyle.Fill,
+            ForeColor = AdminTheme.Muted,
+            Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true
+        }, 1, 0);
+        value.Dock = DockStyle.Fill;
+        value.ForeColor = AdminTheme.Text;
+        value.Font = new Font("Segoe UI", 19F, FontStyle.Bold);
+        value.TextAlign = ContentAlignment.MiddleLeft;
+        content.Controls.Add(value, 1, 1);
+        card.Controls.Add(content);
+        return card;
+    }
+
+    private static Label CreateMetricValue() => new()
+    {
+        Text = "—",
+        AutoEllipsis = true
+    };
+
+    private void DrawTab(object? sender, DrawItemEventArgs e)
+    {
+        if (e.Index < 0 || e.Index >= _tabs.TabPages.Count)
+            return;
+
+        var selected = (e.State & DrawItemState.Selected) != 0;
+        using var background = new SolidBrush(selected ? AdminTheme.SurfaceRaised : AdminTheme.Canvas);
+        e.Graphics.FillRectangle(background, e.Bounds);
+        if (selected)
+        {
+            using var accent = new SolidBrush(AdminTheme.Accent);
+            e.Graphics.FillRectangle(accent, e.Bounds.X, e.Bounds.Bottom - 3, e.Bounds.Width, 3);
+        }
+
+        TextRenderer.DrawText(
+            e.Graphics,
+            _tabs.TabPages[e.Index].Text,
+            Font,
+            e.Bounds,
+            selected ? AdminTheme.Accent : AdminTheme.Muted,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 
     private void AddBooksPage()
@@ -178,7 +380,7 @@ public sealed class AdminMainForm : Form
         Func<Task> refresh,
         params (string Title, Func<Task> Action)[] actions)
     {
-        var page = new TabPage(title) { Tag = refresh };
+        var page = new TabPage(title) { Tag = refresh, BackColor = AdminTheme.Canvas };
         grid.Dock = DockStyle.Fill;
         page.Controls.Add(grid);
         var toolbarActions = new (string Title, Func<Task> Action)[actions.Length + 1];
@@ -194,13 +396,26 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Top,
             Height = 48,
-            Padding = new Padding(8, 6, 8, 4),
+            Padding = new Padding(12, 6, 12, 4),
             WrapContents = false,
-            AutoScroll = true
+            AutoScroll = true,
+            BackColor = AdminTheme.Surface
         };
+
         foreach (var (title, action) in actions)
         {
-            var button = new Button { Text = title, AutoSize = true, Margin = new Padding(4, 0, 4, 0) };
+            var button = new Button
+            {
+                Text = title,
+                AutoSize = true,
+                Height = 34,
+                Margin = new Padding(4, 0, 4, 0)
+            };
+            var primary = title.StartsWith("Thêm ", StringComparison.Ordinal)
+                || title.StartsWith("Cho mượn", StringComparison.Ordinal)
+                || title.StartsWith("Ghi nhận", StringComparison.Ordinal)
+                || title.StartsWith("Duyệt", StringComparison.Ordinal);
+            AdminTheme.StyleButton(button, primary);
             button.Click += async (_, _) => await RunAsync(action);
             toolbar.Controls.Add(button);
         }
@@ -211,16 +426,29 @@ public sealed class AdminMainForm : Form
     private async Task RefreshDashboardAsync()
     {
         var data = await _api.GetDashboardAsync(CancellationToken.None);
-        _dashboard.Text =
-            $"ĐẦU SÁCH: {data.TotalBooks:N0}\r\n" +
-            $"BẢN SAO: {data.TotalCopies:N0}     SẴN SÀNG: {data.AvailableCopies:N0}\r\n" +
-            $"ĐỘC GIẢ ĐANG HOẠT ĐỘNG: {data.ActiveReaders:N0}\r\n" +
-            $"PHIẾU MƯỢN ĐANG MỞ: {data.ActiveLoans:N0}     QUÁ HẠN: {data.OverdueLoans:N0}\r\n" +
-            $"ĐẶT GIỮ ĐANG CHỜ: {data.PendingReservations:N0}     ĐỀ XUẤT CHỜ: {data.PendingProposals:N0}\r\n" +
-            $"PHẠT CHƯA THU: {data.UnpaidFines:N0} VND     ĐÃ THU: {data.CollectedFines:N0} VND\r\n\r\n" +
-            "SÁCH ĐƯỢC MƯỢN NHIỀU:\r\n" +
-            string.Join("\r\n", data.PopularBooks.Select((book, index) =>
-                $"{index + 1}. {book.Title} ({book.LoanCount} lượt)"));
+        _totalBooksMetric.Text = data.TotalBooks.ToString("N0");
+        _totalCopiesMetric.Text = data.TotalCopies.ToString("N0");
+        _availableCopiesMetric.Text = data.AvailableCopies.ToString("N0");
+        _activeReadersMetric.Text = data.ActiveReaders.ToString("N0");
+        _activeLoansMetric.Text = data.ActiveLoans.ToString("N0");
+        _overdueLoansMetric.Text = data.OverdueLoans.ToString("N0");
+        _pendingReservationsMetric.Text = data.PendingReservations.ToString("N0");
+        _pendingProposalsMetric.Text = data.PendingProposals.ToString("N0");
+        _unpaidFinesMetric.Text = $"{data.UnpaidFines:N0} ₫";
+        _collectedFinesMetric.Text = $"{data.CollectedFines:N0} ₫";
+        _popularBooks.BeginUpdate();
+        try
+        {
+            _popularBooks.Items.Clear();
+            foreach (var (book, index) in data.PopularBooks.Select((book, index) => (book, index)))
+                _popularBooks.Items.Add($"{index + 1:00}   {book.Title}    ·    {book.LoanCount:N0} lượt");
+            if (_popularBooks.Items.Count == 0)
+                _popularBooks.Items.Add("Chưa có dữ liệu mượn sách.");
+        }
+        finally
+        {
+            _popularBooks.EndUpdate();
+        }
     }
 
     private async Task ChangePasswordAsync()
@@ -585,18 +813,22 @@ public sealed class AdminMainForm : Form
         }
     }
 
-    private static DataGridView CreateGrid() => new()
+    private static DataGridView CreateGrid()
     {
-        ReadOnly = true,
-        AllowUserToAddRows = false,
-        AllowUserToDeleteRows = false,
-        AutoGenerateColumns = true,
-        AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
-        MultiSelect = false,
-        SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-        RowHeadersVisible = false,
-        BackgroundColor = SystemColors.Window
-    };
+        var grid = new DataGridView
+        {
+            ReadOnly = true,
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AutoGenerateColumns = true,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+            MultiSelect = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            RowHeadersVisible = false
+        };
+        AdminTheme.StyleGrid(grid);
+        return grid;
+    }
 
     private static T? Selected<T>(DataGridView grid) where T : class =>
         grid.CurrentRow?.DataBoundItem as T;
@@ -615,6 +847,7 @@ public sealed class AdminMainForm : Form
             ShowInTaskbar = false,
             ClientSize = new Size(560, 90 + fields.Length * 40)
         };
+        AdminTheme.StyleForm(dialog);
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
@@ -632,7 +865,8 @@ public sealed class AdminMainForm : Form
             {
                 Text = fields[index].Label,
                 AutoSize = true,
-                Anchor = AnchorStyles.Left
+                Anchor = AnchorStyles.Left,
+                ForeColor = AdminTheme.Text
             }, 0, index);
             var input = new TextBox
             {
@@ -640,6 +874,7 @@ public sealed class AdminMainForm : Form
                 UseSystemPasswordChar = fields[index].IsPassword,
                 Dock = DockStyle.Fill
             };
+            AdminTheme.StyleTextBox(input);
             inputs.Add(input);
             layout.Controls.Add(input, 1, index);
         }
@@ -651,6 +886,8 @@ public sealed class AdminMainForm : Form
         };
         var ok = new Button { Text = "Lưu", DialogResult = DialogResult.OK, AutoSize = true };
         var cancel = new Button { Text = "Hủy", DialogResult = DialogResult.Cancel, AutoSize = true };
+        AdminTheme.StyleButton(ok, primary: true);
+        AdminTheme.StyleButton(cancel);
         buttons.Controls.Add(ok);
         buttons.Controls.Add(cancel);
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
@@ -696,6 +933,7 @@ public sealed class AdminMainForm : Form
 
         public CopyManagementForm(string bookTitle, IReadOnlyList<BookCopyResponse> copies)
         {
+            AdminTheme.StyleForm(this);
             Text = $"Bản sao - {bookTitle}";
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(700, 500);
@@ -707,8 +945,12 @@ public sealed class AdminMainForm : Form
                 Height = 48,
                 FlowDirection = FlowDirection.RightToLeft
             };
-            buttons.Controls.Add(new Button { Text = "Chọn bản sao", DialogResult = DialogResult.OK, AutoSize = true });
-            buttons.Controls.Add(new Button { Text = "Đóng", DialogResult = DialogResult.Cancel, AutoSize = true });
+            var select = new Button { Text = "Chọn bản sao", DialogResult = DialogResult.OK, AutoSize = true };
+            var close = new Button { Text = "Đóng", DialogResult = DialogResult.Cancel, AutoSize = true };
+            AdminTheme.StyleButton(select, primary: true);
+            AdminTheme.StyleButton(close);
+            buttons.Controls.Add(select);
+            buttons.Controls.Add(close);
             Controls.Add(_grid);
             Controls.Add(buttons);
             AcceptButton = (Button)buttons.Controls[0];

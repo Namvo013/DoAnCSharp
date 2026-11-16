@@ -14,30 +14,56 @@ public sealed class LoginForm : Form
     {
         Text = "LiMS - Đăng nhập quản trị";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(460, 310);
-        ClientSize = new Size(520, 350);
+        MinimumSize = new Size(560, 420);
+        ClientSize = new Size(640, 480);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
+        AdminTheme.StyleForm(this);
 
-        var title = new Label
+        AdminTheme.StyleTextBox(_apiAddress);
+        AdminTheme.StyleTextBox(_username);
+        AdminTheme.StyleTextBox(_password);
+
+        var banner = new Panel
         {
-            Text = "HỆ THỐNG QUẢN LÝ THƯ VIỆN",
-            Font = new Font(Font, FontStyle.Bold),
-            AutoSize = true,
-            Anchor = AnchorStyles.None
+            Dock = DockStyle.Fill,
+            Padding = new Padding(36, 16, 36, 12),
+            BackColor = AdminTheme.Surface
         };
+        var brand = new Label
+        {
+            Text = "LiMS",
+            Dock = DockStyle.Top,
+            Height = 42,
+            ForeColor = AdminTheme.Accent,
+            Font = new Font("Segoe UI", 25F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+        var subtitle = new Label
+        {
+            Text = "LIBRARY MANAGEMENT SYSTEM  /  ADMIN CONSOLE",
+            Dock = DockStyle.Bottom,
+            Height = 24,
+            ForeColor = AdminTheme.Muted,
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+        banner.Controls.Add(subtitle);
+        banner.Controls.Add(brand);
+
         var fields = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 4,
-            Padding = new Padding(28, 12, 28, 8)
+            Padding = new Padding(36, 20, 36, 12),
+            BackColor = AdminTheme.Canvas
         };
-        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
+        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
         fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        fields.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         fields.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         AddField(fields, 0, "API", _apiAddress);
         AddField(fields, 1, "Tài khoản", _username);
@@ -57,9 +83,16 @@ public sealed class LoginForm : Form
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            Padding = new Padding(0, 8, 24, 0),
-            Anchor = AnchorStyles.None
+            Padding = new Padding(36, 10, 36, 14),
+            BackColor = AdminTheme.Canvas
         };
+        _signIn.Text = "Đăng nhập vào hệ thống";
+        _signIn.AutoSize = false;
+        _signIn.Width = 544;
+        _signIn.Height = 42;
+        AdminTheme.StyleButton(_signIn, primary: true);
+        _error.ForeColor = AdminTheme.Warning;
+        _error.Padding = new Padding(2, 8, 0, 0);
         footer.Controls.Add(_signIn);
         footer.Controls.Add(_error);
 
@@ -67,12 +100,13 @@ public sealed class LoginForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 3
+            RowCount = 3,
+            BackColor = AdminTheme.Canvas
         };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 66));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 94));
-        layout.Controls.Add(title, 0, 0);
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
+        layout.Controls.Add(banner, 0, 0);
         layout.Controls.Add(fields, 0, 1);
         layout.Controls.Add(footer, 0, 2);
         Controls.Add(layout);
@@ -86,7 +120,9 @@ public sealed class LoginForm : Form
         {
             Text = label,
             AutoSize = true,
-            Anchor = AnchorStyles.Left
+            Anchor = AnchorStyles.Left,
+            ForeColor = AdminTheme.Text,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold)
         }, 0, row);
         layout.Controls.Add(control, 1, row);
     }
