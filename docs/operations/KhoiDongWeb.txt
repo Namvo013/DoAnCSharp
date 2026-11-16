@@ -49,20 +49,26 @@ sqlcmd -S localhost -E -d LiMSDB -Q "SELECT DB_NAME();"
 
 3. Khởi động API Backend .NET
 -----------------------------
-Hai file start-frontend.bat và start-admin.bat sẽ tự kiểm tra API. Nếu API chưa chạy, script tự khởi động API tại cổng 5107 và chờ kết nối SQL Server thành công.
+Mở Terminal thứ nhất tại thư mục D:\DoAnC#, chạy:
 
-Có thể chạy API thủ công khi cần xem log riêng, bằng Terminal tại D:\DoAnC#:
+Nếu API đang chạy, đóng cửa sổ API hoặc dừng process đang giữ port 5107:
+
+$listener = Get-NetTCPConnection -LocalPort 5107 -State Listen -ErrorAction SilentlyContinue
+if ($listener) { Stop-Process -Id $listener.OwningProcess -Force }
 
 Set-Location "D:\DoAnC#\LiMS.Api"
-dotnet run --launch-profile http
+dotnet restore
+dotnet run --launch-profile http --no-build
 
 Khi chạy dotnet run, terminal sẽ giữ cửa sổ API và hiện thông báo:
 "Application started. Press Ctrl+C to shut down."
 Đây không phải lỗi. Không đóng terminal khi đang dùng API.
 
-API chạy tại: http://localhost:5107
+Nếu muốn mở API trong cửa sổ riêng và trả lại terminal hiện tại:
 
-Nếu cổng 5107 đang được chương trình khác sử dụng, không dừng chương trình đó một cách tùy tiện. Kiểm tra và đóng đúng ứng dụng LiMS cũ trước khi chạy lại.
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location 'D:\DoAnC#\LiMS.Api'; dotnet run --launch-profile http --no-build"
+
+API chạy tại: http://localhost:5107
 
 Khi API khởi động lần đầu sau khi cập nhật Backend:
 - EF Core tự tạo các bảng mới theo ERD và chạy import dữ liệu cũ đúng một lần.
@@ -89,52 +95,32 @@ Kết quả mong đợi: {"status":"ok","database":true}
 
 4. Khởi động giao diện Website
 ------------------------------
-Chạy file sau tại thư mục gốc dự án:
+Mở Terminal thứ hai tại thư mục D:\DoAnC#, chạy:
 
-start-frontend.bat
+Set-Location "D:\DoAnC#"
+dotnet run --project ".\LiMS.Web\LiMS.Web.csproj" --launch-profile http
 
-Script kiểm tra/khởi động API trước, sau đó chạy Web và chỉ mở trình duyệt khi trang đăng nhập đã sẵn sàng.
 Website Razor Pages chạy tại: http://localhost:5500
 Giao diện Razor Pages gọi API tại cổng 5107. Sau khi đăng nhập, API cấp JWT; Web giữ phiên trong cookie HttpOnly và session phía máy chủ. Chọn "Ghi nhớ đăng nhập" để giữ cookie qua lần mở trình duyệt tiếp theo, tối đa đến khi JWT hết hạn.
 
 Các luồng Web đã kết nối API: tra cứu/lọc/chi tiết sách, đặt giữ sách đang được mượn, xem phiếu mượn, gia hạn phiếu đủ điều kiện và hủy đặt giữ. Đặt giữ không áp dụng khi sách còn bản sao sẵn sàng để mượn.
 Khôi phục mật khẩu hiện hướng dẫn liên hệ thủ thư; cần cấu hình dịch vụ gửi email trước khi có thể bật quy trình tự động.
 
+Hoặc chạy trực tiếp bằng file:
+
+start-frontend.bat
+
 5. Khởi động ứng dụng quản trị WinForms
 ---------------------------------------
-Có thể mở nhanh bằng file sau tại thư mục gốc dự án:
+Đảm bảo API đã chạy, sau đó mở terminal tại D:\DoAnC# và chạy:
 
 start-admin.bat
 
-Nếu muốn mở Admin thủ công (không dùng file .bat), làm lần lượt:
+Hoặc chạy trực tiếp:
 
-1. Khởi động dịch vụ SQL Server theo mục 1 và kiểm tra chuỗi kết nối theo mục 2.
-2. Mở Terminal thứ nhất, chạy API:
+dotnet run --project ".\LiMS.Admin\LiMS.Admin.csproj"
 
-   Set-Location "D:\DoAnC#\LiMS.Api"
-   dotnet run --launch-profile http
-
-   Giữ Terminal này mở. Đợi API khởi động, rồi mở Terminal thứ hai và kiểm tra:
-
-   curl.exe http://localhost:5107/api/library/health
-
-   Chỉ tiếp tục khi kết quả có "status":"ok" và "database":true.
-3. Trong Terminal thứ hai, chạy ứng dụng Admin:
-
-   Set-Location "D:\DoAnC#"
-   dotnet run --project ".\LiMS.Admin\LiMS.Admin.csproj"
-
-   Lần chạy đầu có thể cần chờ .NET biên dịch ứng dụng. Cửa sổ đăng nhập LiMS sẽ hiện ra.
-4. Đăng nhập bằng tài khoản có vai trò Admin hoặc Librarian trong database.
-
-Không đóng Terminal API khi đang sử dụng Admin. WinForms gọi API tại cổng 5107; chỉ API kết nối SQL Server.
-Nếu Admin đã được build trước đó, có thể mở trực tiếp:
-
-   & "D:\DoAnC#\LiMS.Admin\bin\Debug\net10.0-windows\LiMS.Admin.exe"
-
-Lệnh mở trực tiếp ở trên cũng cần API đang chạy và database sẵn sàng.
-
-WinForms và Website đều gọi chung API; chỉ API truy cập SQL Server.
+Đăng nhập bằng tài khoản có vai trò Admin hoặc Librarian đã được tạo trong database. WinForms và Website đều gọi chung API; chỉ API truy cập SQL Server.
 
 6. Kiểm tra nhanh toàn hệ thống
 --------------------------------
@@ -144,11 +130,18 @@ http://localhost:5500
 http://localhost:5107/api/library/health
 http://localhost:5107/api/library/books
 
-7. Khởi động nhanh
-------------------
-- Dùng start-frontend.bat để chạy API và Web.
-- Dùng start-admin.bat để chạy API và ứng dụng quản trị.
-- Nếu API đã chạy, các script sẽ dùng lại và không tạo thêm API instance.
+7. Khởi động nhanh bằng một cửa sổ Terminal
+--------------------------------------------
+Mở PowerShell và chạy:
+
+$apiListener = Get-NetTCPConnection -LocalPort 5107 -State Listen -ErrorAction SilentlyContinue
+if ($apiListener) { Stop-Process -Id $apiListener.OwningProcess -Force }
+
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location 'D:\DoAnC#\LiMS.Api'; dotnet run --launch-profile http"
+Start-Sleep -Seconds 8
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location 'D:\DoAnC#'; dotnet run --project '.\LiMS.Web\LiMS.Web.csproj' --launch-profile http"
+Start-Sleep -Seconds 2
+Start-Process "http://localhost:5500"
 
 Lưu ý:
 - Luôn khởi động SQL Server trước API.

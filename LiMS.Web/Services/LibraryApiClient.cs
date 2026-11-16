@@ -96,32 +96,6 @@ public sealed class LibraryApiClient(
             throw await CreateApiExceptionAsync(response, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<PurchaseProposal>> GetPurchaseProposalsAsync(
-        CancellationToken cancellationToken)
-    {
-        using var message = CreateRequest(HttpMethod.Get, "api/library/proposals");
-        using var response = await _client.SendAsync(message, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<PurchaseProposal>>(
-                cancellationToken: cancellationToken)
-            ?? throw new InvalidDataException("API đề xuất mua sách trả về dữ liệu rỗng.");
-    }
-
-    public async Task<PurchaseProposal> CreatePurchaseProposalAsync(
-        CreatePurchaseProposalRequest request,
-        CancellationToken cancellationToken)
-    {
-        using var message = CreateRequest(HttpMethod.Post, "api/library/proposals");
-        message.Content = JsonContent.Create(request);
-        using var response = await _client.SendAsync(message, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            throw await CreateApiExceptionAsync(response, cancellationToken);
-
-        return await response.Content.ReadFromJsonAsync<PurchaseProposal>(
-                cancellationToken: cancellationToken)
-            ?? throw new InvalidDataException("API đề xuất mua sách trả về dữ liệu rỗng.");
-    }
-
     public async Task<LoanRenewalResult> RenewLoanAsync(long loanId, CancellationToken cancellationToken)
     {
         using var message = CreateRequest(HttpMethod.Post, $"api/library/loans/{loanId}/renew");

@@ -2,7 +2,6 @@
 @token = paste-access-token-here
 @readerCard = reader-card-number
 @barcode = book-copy-barcode
-@backupFileName = LiMSDB_backup_yyyyMMdd_HHmmss_fff.bak
 
 ### Health and public catalog
 GET {{baseUrl}}/api/library/health
@@ -197,15 +196,6 @@ Content-Type: application/json
   "isActive": true
 }
 
-###
-PUT {{baseUrl}}/api/admin/readers/1/password
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "newPassword": "replace-with-strong-password"
-}
-
 ### Circulation
 GET {{baseUrl}}/api/admin/loans
 Authorization: Bearer {{token}}
@@ -285,24 +275,3 @@ Content-Type: application/json
 ###
 GET {{baseUrl}}/api/admin/activity-logs?page=1&pageSize=50
 Authorization: Bearer {{token}}
-
-### List SQL Server backups (Admin only)
-GET {{baseUrl}}/api/admin/database-backups
-Authorization: Bearer {{token}}
-
-### Create and verify a database backup (Admin only)
-POST {{baseUrl}}/api/admin/database-backups
-Authorization: Bearer {{token}}
-
-### Get backup metadata (Admin only)
-GET {{baseUrl}}/api/admin/database-backups/{{backupFileName}}
-Authorization: Bearer {{token}}
-
-### Restore replaces the target database; it creates a safety backup first
-POST {{baseUrl}}/api/admin/database-backups/{{backupFileName}}/restore
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "confirmDatabaseName": "LiMSDB"
-}

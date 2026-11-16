@@ -1,5 +1,4 @@
 using System.Data;
-using System.Globalization;
 using LiMS.Api.Contracts;
 using LiMS.Api.Data;
 using LiMS.Api.Models;
@@ -217,25 +216,18 @@ public sealed class AdminService(
     }
 
     public async Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(
-    string? search,
-    string? cardStatus,
-    CancellationToken cancellationToken)
+        string? search,
+        CancellationToken cancellationToken)
     {
         var query = db.Readers.AsNoTracking().Include(reader => reader.Account).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
             query = query.Where(reader =>
-     reader.CardNo.Contains(term)
-     || reader.Account.Username.Contains(term)
-     || reader.Account.FullName.Contains(term)
-     || reader.Account.Email.Contains(term)
-     || (reader.Account.Phone != null && reader.Account.Phone.Contains(term)));
-        }
-
-        if (!string.IsNullOrWhiteSpace(cardStatus))
-        {
-            query = query.Where(reader => reader.CardStatus == cardStatus);
+                reader.CardNo.Contains(term)
+                || reader.Account.Username.Contains(term)
+                || reader.Account.FullName.Contains(term)
+                || reader.Account.Email.Contains(term));
         }
 
         var readers = await query.OrderBy(reader => reader.Account.FullName).ToListAsync(cancellationToken);
@@ -307,28 +299,9 @@ public sealed class AdminService(
         return MapReader(reader);
     }
 
-    public async Task ResetReaderPasswordAsync(
-        int readerId,
-        ResetReaderPasswordRequest request,
-        int actorId,
-        CancellationToken cancellationToken)
-    {
-        var reader = await db.Readers.Include(item => item.Account)
-            .SingleOrDefaultAsync(item => item.ReaderId == readerId, cancellationToken)
-            ?? throw new KeyNotFoundException("Không tìm thấy độc giả.");
-
-        reader.Account.PasswordHash = passwordHasher.HashPassword(reader.Account, request.NewPassword);
-        AddAudit(actorId, "ResetPassword", "READER", readerId, $"Đặt lại mật khẩu tài khoản {reader.CardNo}.");
-        await db.SaveChangesAsync(cancellationToken);
-    }
-
     public async Task<DashboardResponse> GetDashboardAsync(CancellationToken cancellationToken)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var currentMonth = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var firstReportMonth = currentMonth.AddMonths(-5);
-        var afterReportMonth = currentMonth.AddMonths(1);
-
         var counts = await db.Loans.AsNoTracking()
             .GroupBy(loan => loan.Copy.BookId)
             .Select(group => new { BookId = group.Key, LoanCount = group.Count() })
@@ -344,56 +317,6 @@ public sealed class AdminService(
             .Select(item => new PopularBookResponse(item.BookId, titles[item.BookId], item.LoanCount))
             .ToArray();
 
-        var borrowedRows = await db.Loans.AsNoTracking()
-            .Where(loan => loan.BorrowDate >= firstReportMonth && loan.BorrowDate < afterReportMonth)
-            .GroupBy(loan => new { loan.BorrowDate.Year, loan.BorrowDate.Month })
-            .Select(group => new { group.Key.Year, group.Key.Month, Count = group.Count() })
-            .ToListAsync(cancellationToken);
-        var returnedRows = await db.Loans.AsNoTracking()
-            .Where(loan => loan.ReturnDate.HasValue
-                && loan.ReturnDate.Value >= firstReportMonth
-                && loan.ReturnDate.Value < afterReportMonth)
-            .GroupBy(loan => new
-            {
-                Year = loan.ReturnDate!.Value.Year,
-                Month = loan.ReturnDate.Value.Month
-            })
-            .Select(group => new { group.Key.Year, group.Key.Month, Count = group.Count() })
-            .ToListAsync(cancellationToken);
-        var collectedFineRows = await db.Fines.AsNoTracking()
-            .Where(fine => fine.Status == RecordStatuses.Paid
-                && fine.PaidAt.HasValue
-                && fine.PaidAt.Value >= firstReportMonth
-                && fine.PaidAt.Value < afterReportMonth)
-            .GroupBy(fine => new
-            {
-                Year = fine.PaidAt!.Value.Year,
-                Month = fine.PaidAt.Value.Month
-            })
-            .Select(group => new { group.Key.Year, group.Key.Month, Amount = group.Sum(fine => fine.Amount) })
-            .ToListAsync(cancellationToken);
-        var borrowedByMonth = borrowedRows.ToDictionary(
-            item => (item.Year, item.Month),
-            item => item.Count);
-        var returnedByMonth = returnedRows.ToDictionary(
-            item => (item.Year, item.Month),
-            item => item.Count);
-        var collectedFinesByMonth = collectedFineRows.ToDictionary(
-            item => (item.Year, item.Month),
-            item => item.Amount);
-        var monthlyReports = Enumerable.Range(0, 6)
-            .Select(offset =>
-            {
-                var month = firstReportMonth.AddMonths(offset);
-                var key = (month.Year, month.Month);
-                return new MonthlyCirculationReportResponse(
-                    month.ToString("MM/yyyy", CultureInfo.InvariantCulture),
-                    borrowedByMonth.GetValueOrDefault(key),
-                    returnedByMonth.GetValueOrDefault(key),
-                    collectedFinesByMonth.GetValueOrDefault(key));
-            })
-            .ToArray();
-
         return new DashboardResponse(
             await db.Books.CountAsync(book => book.IsActive, cancellationToken),
             await db.BookCopies.CountAsync(cancellationToken),
@@ -405,12 +328,9 @@ public sealed class AdminService(
                 reservation.Status == RecordStatuses.Pending || reservation.Status == RecordStatuses.ReadyForPickup,
                 cancellationToken),
             await db.PurchaseProposals.CountAsync(proposal => proposal.Status == RecordStatuses.Pending, cancellationToken),
-            await db.PurchaseProposals.CountAsync(proposal => proposal.Status == RecordStatuses.Approved, cancellationToken),
-            await db.PurchaseProposals.CountAsync(proposal => proposal.Status == RecordStatuses.Rejected, cancellationToken),
             await db.Fines.Where(fine => fine.Status != RecordStatuses.Paid).SumAsync(fine => (decimal?)fine.Amount, cancellationToken) ?? 0,
             await db.Fines.Where(fine => fine.Status == RecordStatuses.Paid).SumAsync(fine => (decimal?)fine.Amount, cancellationToken) ?? 0,
-            popular,
-            monthlyReports);
+            popular);
     }
 
     public async Task<IReadOnlyList<LoanResponse>> GetLoansAsync(string? status, CancellationToken cancellationToken)
@@ -475,13 +395,12 @@ public sealed class AdminService(
         if (request.ReservationId.HasValue)
         {
             reservation = await db.Reservations.SingleOrDefaultAsync(
-       item => item.ReservationId == request.ReservationId.Value
-           && item.ReaderId == reader.ReaderId
-           && item.BookId == copy.BookId
-           && item.ExpireAt > DateTime.UtcNow
-           && (item.Status == RecordStatuses.Pending || item.Status == RecordStatuses.ReadyForPickup),
-       cancellationToken)
-       ?? throw new BusinessRuleException("Phiếu đặt giữ không hợp lệ, đã hết hạn hoặc không thuộc về độc giả/đầu sách này.");
+                item => item.ReservationId == request.ReservationId.Value
+                    && item.ReaderId == reader.ReaderId
+                    && item.BookId == copy.BookId
+                    && (item.Status == RecordStatuses.Pending || item.Status == RecordStatuses.ReadyForPickup),
+                cancellationToken)
+                ?? throw new BusinessRuleException("Phiếu đặt giữ không hợp lệ cho độc giả hoặc đầu sách này.");
         }
         else
         {

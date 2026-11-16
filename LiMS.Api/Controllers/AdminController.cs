@@ -9,9 +9,7 @@ namespace LiMS.Api.Controllers;
 [ApiController]
 [Authorize(Roles = "Admin,Librarian")]
 [Route("api/admin")]
-public sealed class AdminController(
-    IAdminService adminService,
-    IDatabaseMaintenanceService databaseMaintenanceService) : ControllerBase
+public sealed class AdminController(IAdminService adminService) : ControllerBase
 {
     [HttpGet("dashboard")]
     [EndpointSummary("Get library dashboard statistics")]
@@ -86,13 +84,12 @@ public sealed class AdminController(
     }
 
     [HttpGet("readers")]
-    [EndpointSummary("Search and filter reader accounts and cards")]
+    [EndpointSummary("Search reader accounts and cards")]
     [ProducesResponseType<IReadOnlyList<ReaderResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ReaderResponse>>> Readers(
-    [FromQuery] string? search,
-    [FromQuery] string? cardStatus,
-    CancellationToken cancellationToken) =>
-    Ok(await adminService.GetReadersAsync(search, cardStatus, cancellationToken));
+        [FromQuery] string? search,
+        CancellationToken cancellationToken) =>
+        Ok(await adminService.GetReadersAsync(search, cancellationToken));
 
     [HttpGet("readers/{id:int}")]
     [EndpointSummary("Get one reader")]
@@ -120,22 +117,6 @@ public sealed class AdminController(
         UpdateReaderRequest request,
         CancellationToken cancellationToken) =>
         Ok(await adminService.UpdateReaderAsync(id, request, GetActorId(), cancellationToken));
-
-    [HttpPut("readers/{id:int}/password")]
-    [Authorize(Roles = "Admin")]
-    [EndpointSummary("Set a new password for a reader account")]
-    [ProducesResponseType<MessageResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<MessageResponse>> ResetReaderPassword(
-        int id,
-        ResetReaderPasswordRequest request,
-        CancellationToken cancellationToken)
-    {
-        await adminService.ResetReaderPasswordAsync(id, request, GetActorId(), cancellationToken);
-        return Ok(new MessageResponse("Đã đặt lại mật khẩu cho độc giả."));
-    }
 
     [HttpGet("loans")]
     [EndpointSummary("List circulation records")]
@@ -233,53 +214,6 @@ public sealed class AdminController(
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default) =>
         Ok(await adminService.GetActivityLogsAsync(page, pageSize, cancellationToken));
-
-    [HttpGet("database-backups")]
-    [Authorize(Roles = "Admin")]
-    [EndpointSummary("List available SQL Server database backups")]
-    [ProducesResponseType<DatabaseBackupStatusResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<DatabaseBackupStatusResponse>> DatabaseBackups(
-        CancellationToken cancellationToken) =>
-        Ok(await databaseMaintenanceService.GetBackupStatusAsync(cancellationToken));
-
-    [HttpGet("database-backups/{fileName}")]
-    [Authorize(Roles = "Admin")]
-    [EndpointSummary("Get metadata for one database backup")]
-    [ProducesResponseType<DatabaseBackupFileResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<DatabaseBackupFileResponse>> GetDatabaseBackup(
-        string fileName,
-        CancellationToken cancellationToken) =>
-        Ok(await databaseMaintenanceService.GetBackupAsync(fileName, cancellationToken));
-
-    [HttpPost("database-backups")]
-    [Authorize(Roles = "Admin")]
-    [EndpointSummary("Create and verify a LiMS database backup")]
-    [ProducesResponseType<DatabaseBackupFileResponse>(StatusCodes.Status201Created)]
-    public async Task<ActionResult<DatabaseBackupFileResponse>> CreateDatabaseBackup(
-        CancellationToken cancellationToken)
-    {
-        var backup = await databaseMaintenanceService.CreateBackupAsync(GetActorId(), cancellationToken);
-        return CreatedAtAction(nameof(GetDatabaseBackup), new { fileName = backup.FileName }, backup);
-    }
-
-    [HttpPost("database-backups/{fileName}/restore")]
-    [Authorize(Roles = "Admin")]
-    [EndpointSummary("Restore a verified LiMS database backup")]
-    [ProducesResponseType<DatabaseRestoreResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<DatabaseRestoreResponse>> RestoreDatabaseBackup(
-        string fileName,
-        RestoreDatabaseBackupRequest request,
-        CancellationToken cancellationToken) =>
-        Ok(await databaseMaintenanceService.RestoreBackupAsync(
-            fileName,
-            request.ConfirmDatabaseName,
-            GetActorId(),
-            cancellationToken));
 
     private int GetActorId()
     {

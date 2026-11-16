@@ -20,18 +20,11 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 
 var connectionString = builder.Configuration.GetConnectionString("LiMS")
     ?? throw new InvalidOperationException("Connection string 'LiMS' is not configured.");
-
 builder.Services.AddDbContext<LiMSDbContext>(options =>
     options.UseSqlServer(connectionString, sql =>
         sql.MigrationsHistoryTable("__LiMSMigrationsHistory")));
-
-var legacyConnectionString = builder.Configuration.GetConnectionString("LegacyLiMS");
-
-if (!string.IsNullOrWhiteSpace(legacyConnectionString))
-{
-    builder.Services.AddDbContext<LegacyLiMSDbContext>(options =>
-        options.UseSqlServer(legacyConnectionString));
-}
+builder.Services.AddDbContext<LegacyLiMSDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"];
 var generatedDevelopmentKey = false;
@@ -81,7 +74,6 @@ builder.Services.AddScoped<IPasswordHasher<Account>, PasswordHasher<Account>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<IDatabaseMaintenanceService, DatabaseMaintenanceService>();
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddScoped<IReservationQueueService, ReservationQueueService>();
 builder.Services.AddScoped<ILibraryQueryService, LibraryQueryService>();
