@@ -1,4 +1,5 @@
-
+Link gg docs quá trình làm bài của nhóm:
+https://docs.google.com/document/d/1LlYWdx2fwALSF9xYvVSEyiGO4XDABOZBHCllu9ZDjXU/edit?usp=sharing
 # LiMS - Hệ thống quản lý thư viện
 
 ## 1. Giới thiệu
