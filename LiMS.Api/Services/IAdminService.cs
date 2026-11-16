@@ -16,7 +16,10 @@ public interface IAdminService
     Task<BookResponse> UpdateBookAsync(int id, UpdateBookRequest request, int actorId, CancellationToken cancellationToken);
     Task AddCopiesAsync(int bookId, CreateCopiesRequest request, int actorId, CancellationToken cancellationToken);
     Task UpdateCopyStatusAsync(int copyId, CopyStatusRequest request, int actorId, CancellationToken cancellationToken);
-    Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(string? search, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(
+    string? search,
+    string? cardStatus,
+    CancellationToken cancellationToken);
     Task<ReaderResponse?> GetReaderAsync(int readerId, CancellationToken cancellationToken);
     Task<ReaderResponse> CreateReaderAsync(CreateReaderRequest request, int actorId, CancellationToken cancellationToken);
     Task<ReaderResponse> UpdateReaderAsync(int readerId, UpdateReaderRequest request, int actorId, CancellationToken cancellationToken);

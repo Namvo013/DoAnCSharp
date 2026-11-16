@@ -93,12 +93,28 @@ public sealed class AdminApiClient : IDisposable
         CancellationToken cancellationToken) =>
         PutAsync<MessageResponse>($"api/admin/copies/{copyId}/status", request, cancellationToken);
 
-    public Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(string? search, CancellationToken cancellationToken) =>
-        GetAsync<IReadOnlyList<ReaderResponse>>(
-            string.IsNullOrWhiteSpace(search)
-                ? "api/admin/readers"
-                : $"api/admin/readers?search={Uri.EscapeDataString(search)}",
+    public Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(
+    string? search,
+    string? cardStatus,
+    CancellationToken cancellationToken)
+    {
+        var queryParams = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            queryParams.Add($"search={Uri.EscapeDataString(search)}");
+
+        if (!string.IsNullOrWhiteSpace(cardStatus))
+            queryParams.Add($"cardStatus={Uri.EscapeDataString(cardStatus)}");
+
+        var endpoint = "api/admin/readers";
+
+        if (queryParams.Count > 0)
+            endpoint += "?" + string.Join("&", queryParams);
+
+        return GetAsync<IReadOnlyList<ReaderResponse>>(
+            endpoint,
             cancellationToken);
+    }
 
     public Task<ReaderResponse> CreateReaderAsync(CreateReaderRequest request, CancellationToken cancellationToken) =>
         PostAsync<ReaderResponse>("api/admin/readers", request, cancellationToken);

@@ -4,9 +4,9 @@ namespace LiMS.Admin.Forms;
 
 public sealed class LoginForm : Form
 {
-    private static readonly Color Ink = Color.FromArgb(31, 41, 55);
-    private static readonly Color Muted = Color.FromArgb(107, 114, 128);
-    private static readonly Color Accent = Color.FromArgb(16, 145, 105);
+    private static readonly Color Ink = Color.FromArgb(30, 53, 42);
+    private static readonly Color Muted = Color.FromArgb(106, 121, 111);
+    private static readonly Color Accent = Color.FromArgb(43, 119, 75);
 
     private readonly TextBox _apiAddress = new() { Text = "http://localhost:5107", Dock = DockStyle.Fill };
     private readonly TextBox _username = new() { Dock = DockStyle.Fill };
@@ -28,7 +28,7 @@ public sealed class LoginForm : Form
         ClientSize = new Size(1080, 700);
         FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = true;
-        BackColor = Color.White;
+        BackColor = Color.FromArgb(244, 247, 244);
         Font = new Font("Segoe UI", 10F);
 
         var layout = new TableLayoutPanel
@@ -50,7 +50,7 @@ public sealed class LoginForm : Form
         _signIn.ForeColor = Color.White;
         _signIn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
         _signIn.Cursor = Cursors.Hand;
-        _signIn.FlatAppearance.MouseOverBackColor = Color.FromArgb(12, 122, 88);
+        _signIn.FlatAppearance.MouseOverBackColor = Color.FromArgb(34, 101, 63);
         _signIn.Click += async (_, _) => await SignInAsync();
         _password.KeyDown += async (_, args) =>
         {
@@ -67,8 +67,8 @@ public sealed class LoginForm : Form
         var panel = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(20, 35, 54),
-            Padding = new Padding(40)
+            BackColor = Color.FromArgb(22, 43, 32),
+            Padding = new Padding(48)
         };
         var layout = new TableLayoutPanel
         {
@@ -85,11 +85,11 @@ public sealed class LoginForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 17));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 12));
         layout.Controls.Add(CreateWelcomeLabel("LiMS", 30, Color.White, FontStyle.Bold), 0, 0);
-        layout.Controls.Add(CreateWelcomeLabel("LIBRARY MANAGEMENT SYSTEM", 8.5F, Color.FromArgb(125, 220, 184), FontStyle.Bold), 0, 1);
+        layout.Controls.Add(CreateWelcomeLabel("LIBRARY MANAGEMENT SYSTEM", 8.5F, Color.FromArgb(151, 207, 159), FontStyle.Bold), 0, 1);
         layout.Controls.Add(CreateWelcomeLabel("Không gian quản trị\r\nthư viện hiện đại", 25, Color.White, FontStyle.Bold), 0, 2);
-        layout.Controls.Add(CreateWelcomeLabel("Quản lý kho sách, độc giả và hoạt động\r\nmượn trả trên cùng một hệ thống.", 10.5F, Color.FromArgb(194, 205, 218)), 0, 3);
+        layout.Controls.Add(CreateWelcomeLabel("Quản lý kho sách, độc giả và hoạt động\r\nmượn trả trên cùng một hệ thống.", 10.5F, Color.FromArgb(213, 226, 216)), 0, 3);
         layout.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = panel.BackColor }, 0, 4);
-        layout.Controls.Add(CreateWelcomeLabel("BẢO MẬT  •  ĐỒNG BỘ  •  DỄ SỬ DỤNG", 8, Color.FromArgb(153, 170, 190), FontStyle.Bold), 0, 5);
+        layout.Controls.Add(CreateWelcomeLabel("BẢO MẬT  •  ĐỒNG BỘ  •  DỄ SỬ DỤNG", 8, Color.FromArgb(171, 194, 178), FontStyle.Bold), 0, 5);
         panel.Controls.Add(layout);
         return panel;
     }
@@ -116,7 +116,7 @@ public sealed class LoginForm : Form
             BackColor = Color.White
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 94));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
@@ -127,23 +127,35 @@ public sealed class LoginForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
 
-        var heading = new Panel { Dock = DockStyle.Fill };
+        var heading = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(0, 4, 0, 4),
+            BackColor = Color.White
+        };
+        heading.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        heading.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
+        heading.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         heading.Controls.Add(new Label
         {
             Text = "Đăng nhập",
-            AutoSize = true,
+            Dock = DockStyle.Fill,
             ForeColor = Ink,
-            Font = new Font("Segoe UI", 24, FontStyle.Bold),
-            Location = new Point(0, 8)
-        });
+            Font = new Font("Segoe UI", 22, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = Padding.Empty
+        }, 0, 0);
         heading.Controls.Add(new Label
         {
             Text = "Đăng nhập bằng tài khoản quản trị hoặc thủ thư.",
-            AutoSize = true,
+            Dock = DockStyle.Fill,
             ForeColor = Muted,
             Font = new Font("Segoe UI", 9.5F),
-            Location = new Point(3, 54)
-        });
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = Padding.Empty
+        }, 0, 1);
         layout.Controls.Add(heading, 0, 0);
         layout.Controls.Add(CreateFieldLabel("TÀI KHOẢN"), 0, 1);
         layout.Controls.Add(StyleInput(_username), 0, 2);
@@ -168,7 +180,7 @@ public sealed class LoginForm : Form
     {
         Text = text,
         Dock = DockStyle.Fill,
-        ForeColor = Color.FromArgb(75, 85, 99),
+        ForeColor = Color.FromArgb(65, 87, 71),
         Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
         TextAlign = ContentAlignment.BottomLeft,
         Padding = new Padding(0, 0, 0, 5)
@@ -179,7 +191,7 @@ public sealed class LoginForm : Form
         input.Margin = new Padding(0, 2, 0, 8);
         input.BorderStyle = BorderStyle.FixedSingle;
         input.Font = new Font("Segoe UI", 10F);
-        input.BackColor = Color.FromArgb(249, 250, 251);
+        input.BackColor = Color.FromArgb(248, 251, 248);
         return input;
     }
 

@@ -7,14 +7,14 @@ namespace LiMS.Admin.Forms;
 
 public sealed class AdminMainForm : Form
 {
-    private static readonly Color CanvasColor = Color.FromArgb(245, 247, 250);
+    private static readonly Color CanvasColor = Color.FromArgb(244, 247, 244);
     private static readonly Color SurfaceColor = Color.White;
-    private static readonly Color SidebarColor = Color.FromArgb(20, 35, 54);
-    private static readonly Color PrimaryColor = Color.FromArgb(16, 145, 105);
-    private static readonly Color BorrowColor = Color.FromArgb(59, 130, 246);
-    private static readonly Color ReturnColor = Color.FromArgb(16, 145, 105);
-    private static readonly Color TextColor = Color.FromArgb(31, 41, 55);
-    private static readonly Color MutedColor = Color.FromArgb(107, 114, 128);
+    private static readonly Color SidebarColor = Color.FromArgb(22, 43, 32);
+    private static readonly Color PrimaryColor = Color.FromArgb(43, 119, 75);
+    private static readonly Color BorrowColor = Color.FromArgb(67, 125, 166);
+    private static readonly Color ReturnColor = Color.FromArgb(43, 119, 75);
+    private static readonly Color TextColor = Color.FromArgb(30, 53, 42);
+    private static readonly Color MutedColor = Color.FromArgb(106, 121, 111);
 
     private readonly AdminApiClient _api;
     private readonly LoginResponse _user;
@@ -37,6 +37,14 @@ public sealed class AdminMainForm : Form
     private readonly DataGridView _databaseBackupsGrid = CreateGrid();
     private string _bookSearch = "";
     private string _readerSearch = "";
+    private readonly ComboBox _readerStatusFilter = new()
+    {
+        DropDownStyle = ComboBoxStyle.DropDownList,
+        Width = 165,
+        Height = 34,
+        Font = new Font("Segoe UI", 9.5F),
+        Margin = new Padding(12, 3, 0, 3)
+    };
     private readonly Dictionary<string, Label> _dashboardValues = [];
     private readonly Label _dashboardSummary = new();
     private readonly Label _popularBooks = new();
@@ -168,20 +176,49 @@ public sealed class AdminMainForm : Form
     private void AddReadersPage()
     {
         var actions = new List<(string Title, Func<Task> Action)>
-        {
-            ("Tìm độc giả", SearchReadersAsync),
-            ("Thêm độc giả", CreateReaderAsync),
-            ("Cập nhật thẻ", UpdateReaderAsync),
-            ("Khóa thẻ/tài khoản", DeactivateReaderAsync)
-        };
+    {
+        ("Tìm độc giả", SearchReadersAsync),
+        ("Thêm độc giả", CreateReaderAsync),
+        ("Cập nhật thẻ", UpdateReaderAsync),
+        ("Khóa thẻ/tài khoản", DeactivateReaderAsync)
+    };
+
         if (_user.Role == "Admin")
             actions.Add(("Đặt lại mật khẩu", ResetReaderPasswordAsync));
+
+        _readerStatusFilter.Items.Clear();
+        _readerStatusFilter.Items.AddRange(
+            ["Tất cả trạng thái", "Đang hoạt động", "Ngừng hoạt động"]);
+
+        _readerStatusFilter.SelectedIndex = 0;
 
         var page = CreateGridPage(
             "Độc giả",
             _readersGrid,
             LoadReadersAsync,
             actions.ToArray());
+
+        var layout = page.Controls.OfType<TableLayoutPanel>().First();
+        var toolbar = layout.GetControlFromPosition(0, 1) as FlowLayoutPanel;
+
+        if (toolbar != null)
+        {
+            var filterLabel = new Label
+            {
+                Text = "Trạng thái thẻ:",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = TextColor,
+                Margin = new Padding(12, 10, 5, 0)
+            };
+
+            toolbar.Controls.Add(filterLabel);
+            toolbar.Controls.Add(_readerStatusFilter);
+        }
+
+        _readerStatusFilter.SelectedIndexChanged += async (_, _) =>
+            await RunAsync(LoadReadersAsync);
+
         _tabs.TabPages.Add(page);
     }
 
@@ -380,47 +417,83 @@ public sealed class AdminMainForm : Form
 
     private Panel CreateMetricCard(string key, string title, string hint)
     {
+        var metricColor = key switch
+        {
+            "OverdueLoans" => Color.FromArgb(196, 74, 69),
+            "UnpaidFines" => Color.FromArgb(190, 132, 47),
+            "AvailableCopies" => Color.FromArgb(67, 125, 166),
+            _ => PrimaryColor
+        };
         var card = new Panel
         {
             Dock = DockStyle.Fill,
             BackColor = SurfaceColor,
-            Margin = new Padding(0, 0, 12, 12),
-            Padding = new Padding(16)
+            Margin = new Padding(0, 0, 14, 14),
+            Padding = Padding.Empty
         };
         var accent = new Panel
         {
-            Dock = DockStyle.Left,
-            Width = 4,
-            BackColor = key == "OverdueLoans" ? Color.FromArgb(220, 82, 82) : PrimaryColor
+            Location = new Point(18, 18),
+            Size = new Size(4, 25),
+            BackColor = metricColor
         };
+        var content = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            Padding = new Padding(32, 13, 16, 14),
+            BackColor = SurfaceColor
+        };
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        content.RowStyles.Add(new RowStyle(SizeType.Absolute, 4));
+        content.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         var titleLabel = new Label
         {
-            Text = title.ToUpperInvariant(),
-            AutoSize = true,
+            Text = title,
+            Dock = DockStyle.Fill,
             ForeColor = MutedColor,
-            Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
-            Location = new Point(18, 14)
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = Padding.Empty
         };
         var valueLabel = new Label
         {
             Text = "—",
-            AutoSize = true,
-            ForeColor = TextColor,
-            Font = new Font("Segoe UI", 23, FontStyle.Bold),
-            Location = new Point(16, 37)
+            Dock = DockStyle.Fill,
+            ForeColor = metricColor,
+            Font = new Font("Segoe UI", 24, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true,
+            Margin = Padding.Empty
         };
         var hintLabel = new Label
         {
             Text = hint,
-            AutoSize = true,
+            Dock = DockStyle.Fill,
             ForeColor = MutedColor,
             Font = new Font("Segoe UI", 8.5F),
-            Location = new Point(18, 78)
+            TextAlign = ContentAlignment.TopLeft,
+            AutoEllipsis = true,
+            Margin = Padding.Empty
+        };
+        var valueUnderline = new Panel
+        {
+            Dock = DockStyle.Left,
+            Width = 34,
+            Height = 4,
+            BackColor = metricColor,
+            Margin = Padding.Empty
         };
         _dashboardValues[key] = valueLabel;
-        card.Controls.Add(hintLabel);
-        card.Controls.Add(valueLabel);
-        card.Controls.Add(titleLabel);
+        content.Controls.Add(titleLabel, 0, 0);
+        content.Controls.Add(valueLabel, 0, 1);
+        content.Controls.Add(valueUnderline, 0, 2);
+        content.Controls.Add(hintLabel, 0, 3);
+        card.Controls.Add(content);
         card.Controls.Add(accent);
         return card;
     }
@@ -431,8 +504,8 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Fill,
             BackColor = SurfaceColor,
-            Padding = new Padding(18),
-            Margin = new Padding(0, 0, 12, 0)
+            Padding = new Padding(20),
+            Margin = new Padding(0, 0, 14, 0)
         };
         var heading = new Label
         {
@@ -440,8 +513,8 @@ public sealed class AdminMainForm : Form
             Dock = DockStyle.Top,
             Height = 28,
             AutoEllipsis = true,
-            ForeColor = MutedColor,
-            Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            ForeColor = PrimaryColor,
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
         };
         content.Dock = DockStyle.Fill;
         if (content is Label label)
@@ -472,7 +545,7 @@ public sealed class AdminMainForm : Form
         var sidebar = new Panel
         {
             Dock = DockStyle.Left,
-            Width = 238,
+            Width = 248,
             BackColor = SidebarColor,
             Padding = new Padding(0)
         };
@@ -483,11 +556,11 @@ public sealed class AdminMainForm : Form
             RowCount = 3,
             BackColor = SidebarColor
         };
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
 
-        var brand = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20, 18, 12, 10) };
+        var brand = new Panel { Dock = DockStyle.Fill, Padding = new Padding(22, 20, 12, 10) };
         brand.Controls.Add(new Label
         {
             Text = "LiMS",
@@ -501,8 +574,8 @@ public sealed class AdminMainForm : Form
             Text = "QUẢN LÝ THƯ VIỆN",
             Dock = DockStyle.Bottom,
             Height = 24,
-            ForeColor = Color.FromArgb(168, 185, 204),
-            Font = new Font("Segoe UI", 8, FontStyle.Bold)
+            ForeColor = Color.FromArgb(171, 194, 178),
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
         });
 
         var navigation = new FlowLayoutPanel
@@ -511,7 +584,7 @@ public sealed class AdminMainForm : Form
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             AutoScroll = true,
-            Padding = new Padding(12, 12, 8, 8),
+            Padding = new Padding(14, 12, 8, 8),
             BackColor = SidebarColor
         };
         foreach (TabPage page in _tabs.TabPages)
@@ -520,20 +593,20 @@ public sealed class AdminMainForm : Form
             var button = new Button
             {
                 Text = tab.Text,
-                Width = 202,
-                Height = 44,
+                Width = 212,
+                Height = 46,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(16, 0, 8, 0),
+                Padding = new Padding(18, 0, 8, 0),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = SidebarColor,
-                ForeColor = Color.FromArgb(199, 210, 222),
-                Font = new Font("Segoe UI", 10F),
+                ForeColor = Color.FromArgb(203, 218, 207),
+                Font = new Font("Segoe UI", 9.5F),
                 Cursor = Cursors.Hand,
                 Margin = new Padding(0, 0, 0, 6),
                 Tag = tab
             };
             button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(34, 55, 78);
+            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(39, 67, 49);
             button.Click += (_, _) => _tabs.SelectedTab = tab;
             _navigationButtons.Add(button);
             navigation.Controls.Add(button);
@@ -542,15 +615,15 @@ public sealed class AdminMainForm : Form
         var userPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(18, 12, 10, 8),
-            BackColor = Color.FromArgb(16, 29, 46)
+            Padding = new Padding(20, 14, 12, 10),
+            BackColor = Color.FromArgb(17, 35, 25)
         };
         userPanel.Controls.Add(new Label
         {
             Text = _user.Role.ToUpperInvariant(),
             Dock = DockStyle.Top,
             Height = 20,
-            ForeColor = Color.FromArgb(109, 219, 180),
+            ForeColor = Color.FromArgb(151, 207, 159),
             Font = new Font("Segoe UI", 8, FontStyle.Bold)
         });
         userPanel.Controls.Add(new Label
@@ -575,15 +648,15 @@ public sealed class AdminMainForm : Form
         var header = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 78,
+            Height = 82,
             BackColor = SurfaceColor,
-            Padding = new Padding(26, 14, 24, 12)
+            Padding = new Padding(30, 16, 28, 14)
         };
         _currentPageTitle.Text = "Tổng quan";
         _currentPageTitle.Dock = DockStyle.Left;
         _currentPageTitle.AutoSize = true;
         _currentPageTitle.TextAlign = ContentAlignment.MiddleLeft;
-        _currentPageTitle.Font = new Font("Segoe UI", 15, FontStyle.Bold);
+        _currentPageTitle.Font = new Font("Segoe UI", 16, FontStyle.Bold);
         _currentPageTitle.ForeColor = TextColor;
 
         var actions = new FlowLayoutPanel
@@ -620,8 +693,8 @@ public sealed class AdminMainForm : Form
         {
             var selected = ReferenceEquals(button.Tag, _tabs.SelectedTab);
             button.BackColor = selected ? PrimaryColor : SidebarColor;
-            button.ForeColor = selected ? Color.White : Color.FromArgb(199, 210, 222);
-            button.Font = new Font("Segoe UI", 10F, selected ? FontStyle.Bold : FontStyle.Regular);
+            button.ForeColor = selected ? Color.White : Color.FromArgb(203, 218, 207);
+            button.Font = new Font("Segoe UI", 9.5F, selected ? FontStyle.Bold : FontStyle.Regular);
         }
     }
 
@@ -830,8 +903,22 @@ public sealed class AdminMainForm : Form
     private async Task LoadBooksAsync() =>
         _booksGrid.DataSource = (await _api.GetBooksAsync(_bookSearch, CancellationToken.None)).ToList();
 
-    private async Task LoadReadersAsync() =>
-        _readersGrid.DataSource = (await _api.GetReadersAsync(_readerSearch, CancellationToken.None)).ToList();
+    private async Task LoadReadersAsync()
+    {
+        var cardStatus = _readerStatusFilter.SelectedIndex switch
+        {
+            1 => "Active",
+            2 => "Inactive",
+            _ => null
+        };
+
+        _readersGrid.DataSource = (
+            await _api.GetReadersAsync(
+                _readerSearch,
+                cardStatus,
+                CancellationToken.None)
+        ).ToList();
+    }
 
     private async Task SearchBooksAsync()
     {
@@ -844,7 +931,7 @@ public sealed class AdminMainForm : Form
 
     private async Task SearchReadersAsync()
     {
-        var values = Prompt("Tìm độc giả", ("Mã thẻ, tài khoản, họ tên hoặc email", _readerSearch, false));
+        var values = Prompt("Tìm độc giả", ("Mã thẻ, tài khoản, họ tên, email hoặc số điện thoại", _readerSearch, false));
         if (values is null)
             return;
         _readerSearch = values[0];
@@ -1322,26 +1409,26 @@ public sealed class AdminMainForm : Form
             BackgroundColor = SurfaceColor,
             BorderStyle = BorderStyle.None,
             CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            GridColor = Color.FromArgb(232, 236, 241),
+            GridColor = Color.FromArgb(232, 238, 233),
             ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
-            ColumnHeadersHeight = 42,
+            ColumnHeadersHeight = 46,
             EnableHeadersVisualStyles = false,
             Font = new Font("Segoe UI", 9.5F)
         };
-        grid.RowTemplate.Height = 38;
-        grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(242, 245, 248);
-        grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(75, 85, 99);
+        grid.RowTemplate.Height = 42;
+        grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(239, 245, 239);
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(65, 87, 71);
         grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
         grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(10, 0, 4, 0);
-        grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(242, 245, 248);
-        grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.FromArgb(75, 85, 99);
+        grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(239, 245, 239);
+        grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.FromArgb(65, 87, 71);
         grid.DefaultCellStyle.BackColor = SurfaceColor;
         grid.DefaultCellStyle.ForeColor = TextColor;
-        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(220, 244, 236);
+        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 240, 227);
         grid.DefaultCellStyle.SelectionForeColor = TextColor;
         grid.DefaultCellStyle.Padding = new Padding(8, 2, 4, 2);
         grid.DefaultCellStyle.NullValue = "—";
-        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(249, 250, 252);
+        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 251, 248);
         grid.DataBindingComplete += (_, _) => FormatGridColumns(grid);
         return grid;
     }
@@ -1361,21 +1448,21 @@ public sealed class AdminMainForm : Form
             Margin = new Padding(4, 0, 4, 0),
             FlatStyle = FlatStyle.Flat,
             BackColor = destructive
-                ? Color.FromArgb(254, 242, 242)
+                ? Color.FromArgb(255, 244, 242)
                 : primary ? PrimaryColor : SurfaceColor,
             ForeColor = destructive
-                ? Color.FromArgb(185, 55, 55)
+                ? Color.FromArgb(174, 64, 59)
                 : primary ? Color.White : Color.FromArgb(55, 65, 81),
             Font = new Font("Segoe UI", 9F, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
         button.FlatAppearance.BorderSize = destructive || !primary ? 1 : 0;
         button.FlatAppearance.BorderColor = destructive
-            ? Color.FromArgb(254, 202, 202)
-            : Color.FromArgb(220, 226, 233);
+            ? Color.FromArgb(242, 213, 208)
+            : Color.FromArgb(220, 230, 221);
         button.FlatAppearance.MouseOverBackColor = destructive
-            ? Color.FromArgb(254, 226, 226)
-            : primary ? Color.FromArgb(12, 122, 88) : Color.FromArgb(245, 247, 250);
+            ? Color.FromArgb(252, 229, 225)
+            : primary ? Color.FromArgb(34, 101, 63) : Color.FromArgb(239, 245, 239);
         return button;
     }
 
