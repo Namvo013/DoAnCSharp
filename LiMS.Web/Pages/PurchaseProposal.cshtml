@@ -6,15 +6,41 @@
 
 <div class="page-head"><div><span class="eyebrow">ĐỀ XUẤT</span><h1>Gửi đề xuất mua sách</h1><p>Đề xuất tài liệu mới để thư viện xem xét bổ sung.</p></div></div>
 <section class="proposal-layout">
-    <div class="proposal-form">
+    <form method="post" asp-page-handler="Submit" class="proposal-form">
         <div class="proposal-section-title"><span>01</span><div><strong>Thông tin tài liệu</strong><small>Nội dung dự kiến cho đề xuất</small></div></div>
+        <div asp-validation-summary="ModelOnly" class="form-message error" role="alert"></div>
+        @if (Model.SuccessMessage is not null)
+        {
+            <div class="form-message success" role="status">@Model.SuccessMessage</div>
+        }
         <div class="form-grid">
-            <label>Tên tài liệu<input disabled placeholder="Tên sách" /></label>
-            <label>Tác giả<input disabled placeholder="Tên tác giả" /></label>
-            <label>Nhà xuất bản<input disabled placeholder="Nhà xuất bản" /></label>
-            <label>ISBN<input disabled placeholder="ISBN" /></label>
+            <label asp-for="Title">Tên tài liệu<input asp-for="Title" placeholder="Tên sách" maxlength="255" /><span asp-validation-for="Title"></span></label>
+            <label asp-for="Author">Tác giả<input asp-for="Author" placeholder="Tên tác giả" maxlength="100" /><span asp-validation-for="Author"></span></label>
         </div>
-        <p class="small-muted">Gửi đề xuất sẽ được bật khi API lưu và quản lý đề xuất được triển khai. Chưa có dữ liệu nào được gửi.</p>
-    </div>
+        <label asp-for="Reason">Lý do đề xuất<textarea asp-for="Reason" rows="4" maxlength="2000" placeholder="Vì sao bạn muốn thư viện bổ sung tài liệu này?"></textarea><span asp-validation-for="Reason"></span></label>
+        <div class="proposal-actions"><button class="primary" type="submit">Gửi đề xuất</button></div>
+    </form>
     <aside class="proposal-guide"><h2>Quy trình tiếp nhận</h2><ol><li><strong>Độc giả gửi đề xuất</strong><span>Điền đầy đủ thông tin tài liệu.</span></li><li><strong>Thư viện thẩm định</strong><span>Kiểm tra nhu cầu và khả năng bổ sung.</span></li><li><strong>Thông báo kết quả</strong><span>Kết quả sẽ được gửi qua mục Thông báo.</span></li></ol></aside>
+</section>
+<section class="panel proposal-history">
+    <div class="panel-head"><h2>Đề xuất của bạn</h2></div>
+    @if (Model.Proposals.Count == 0)
+    {
+        <div class="empty-state"><strong>Bạn chưa gửi đề xuất nào</strong><p>Các đề xuất đã gửi sẽ xuất hiện tại đây.</p></div>
+    }
+    @foreach (var proposal in Model.Proposals)
+    {
+        <article class="proposal-history-item">
+            <div>
+                <strong>@proposal.Title</strong>
+                <small>@proposal.Author · Gửi ngày @VietnamTime.Convert(proposal.CreatedAt).ToString("dd/MM/yyyy")</small>
+                <p>@proposal.Reason</p>
+                @if (!string.IsNullOrWhiteSpace(proposal.ReviewNote))
+                {
+                    <small>Phản hồi: @proposal.ReviewNote</small>
+                }
+            </div>
+            <span class="status @PurchaseProposalModel.StatusClass(proposal.Status)">@PurchaseProposalModel.StatusLabel(proposal.Status)</span>
+        </article>
+    }
 </section>

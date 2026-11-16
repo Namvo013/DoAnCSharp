@@ -61,6 +61,23 @@ public sealed class AdminApiClient : IDisposable
     public Task<BookResponse> UpdateBookAsync(int id, UpdateBookRequest request, CancellationToken cancellationToken) =>
         PutAsync<BookResponse>($"api/admin/books/{id}", request, cancellationToken);
 
+    public async Task<BookResponse> UploadBookCoverAsync(
+        int bookId,
+        string filePath,
+        CancellationToken cancellationToken)
+    {
+        using var fileStream = File.OpenRead(filePath);
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(fileStream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(GetImageMediaType(filePath));
+        content.Add(fileContent, "File", Path.GetFileName(filePath));
+        using var response = await _client.PostAsync(
+            $"api/admin/books/{bookId}/cover",
+            content,
+            cancellationToken);
+        return await ReadResponseAsync<BookResponse>(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<BookCopyResponse>> GetCopiesAsync(int bookId, CancellationToken cancellationToken) =>
         GetAsync<IReadOnlyList<BookCopyResponse>>($"api/admin/books/{bookId}/copies", cancellationToken);
 
@@ -76,12 +93,28 @@ public sealed class AdminApiClient : IDisposable
         CancellationToken cancellationToken) =>
         PutAsync<MessageResponse>($"api/admin/copies/{copyId}/status", request, cancellationToken);
 
-    public Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(string? search, CancellationToken cancellationToken) =>
-        GetAsync<IReadOnlyList<ReaderResponse>>(
-            string.IsNullOrWhiteSpace(search)
-                ? "api/admin/readers"
-                : $"api/admin/readers?search={Uri.EscapeDataString(search)}",
+    public Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(
+    string? search,
+    string? cardStatus,
+    CancellationToken cancellationToken)
+    {
+        var queryParams = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            queryParams.Add($"search={Uri.EscapeDataString(search)}");
+
+        if (!string.IsNullOrWhiteSpace(cardStatus))
+            queryParams.Add($"cardStatus={Uri.EscapeDataString(cardStatus)}");
+
+        var endpoint = "api/admin/readers";
+
+        if (queryParams.Count > 0)
+            endpoint += "?" + string.Join("&", queryParams);
+
+        return GetAsync<IReadOnlyList<ReaderResponse>>(
+            endpoint,
             cancellationToken);
+    }
 
     public Task<ReaderResponse> CreateReaderAsync(CreateReaderRequest request, CancellationToken cancellationToken) =>
         PostAsync<ReaderResponse>("api/admin/readers", request, cancellationToken);
@@ -91,6 +124,12 @@ public sealed class AdminApiClient : IDisposable
         UpdateReaderRequest request,
         CancellationToken cancellationToken) =>
         PutAsync<ReaderResponse>($"api/admin/readers/{id}", request, cancellationToken);
+
+    public Task<MessageResponse> ResetReaderPasswordAsync(
+        int id,
+        ResetReaderPasswordRequest request,
+        CancellationToken cancellationToken) =>
+        PutAsync<MessageResponse>($"api/admin/readers/{id}/password", request, cancellationToken);
 
     public Task<IReadOnlyList<LoanResponse>> GetLoansAsync(string? status, CancellationToken cancellationToken) =>
         GetAsync<IReadOnlyList<LoanResponse>>(
@@ -151,6 +190,21 @@ public sealed class AdminApiClient : IDisposable
     public Task<IReadOnlyList<ActivityLogResponse>> GetActivityLogsAsync(CancellationToken cancellationToken) =>
         GetAsync<IReadOnlyList<ActivityLogResponse>>("api/admin/activity-logs?page=1&pageSize=100", cancellationToken);
 
+    public Task<DatabaseBackupStatusResponse> GetDatabaseBackupsAsync(CancellationToken cancellationToken) =>
+        GetAsync<DatabaseBackupStatusResponse>("api/admin/database-backups", cancellationToken);
+
+    public Task<DatabaseBackupFileResponse> CreateDatabaseBackupAsync(CancellationToken cancellationToken) =>
+        PostAsync<DatabaseBackupFileResponse>("api/admin/database-backups", new { }, cancellationToken);
+
+    public Task<DatabaseRestoreResponse> RestoreDatabaseBackupAsync(
+        string fileName,
+        RestoreDatabaseBackupRequest request,
+        CancellationToken cancellationToken) =>
+        PostAsync<DatabaseRestoreResponse>(
+            $"api/admin/database-backups/{Uri.EscapeDataString(fileName)}/restore",
+            request,
+            cancellationToken);
+
     private async Task<TResponse> GetAsync<TResponse>(string uri, CancellationToken cancellationToken)
     {
         using var response = await _client.GetAsync(uri, cancellationToken);
@@ -195,6 +249,15 @@ public sealed class AdminApiClient : IDisposable
             ?? $"Yêu cầu thất bại với mã HTTP {(int)response.StatusCode}.";
         return new AdminApiException(response.StatusCode, message);
     }
+
+    private static string GetImageMediaType(string filePath) =>
+        Path.GetExtension(filePath).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
 
     public sealed class AdminApiException(HttpStatusCode statusCode, string message)
         : Exception(message)

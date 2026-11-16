@@ -29,8 +29,18 @@
     {
         @foreach (var loan in Model.ActiveLoans)
         {
+            var coverImageUrl = Model.GetAbsoluteBookCoverUrl(loan.Book?.CoverImageUrl);
             <div class="loan-row">
-                <div class="cover csharp"><strong>@loan.Book?.Title</strong><small>@loan.Book?.Author</small></div>
+                <div class="cover csharp">
+                    @if (coverImageUrl is not null)
+                    {
+                        <img class="cover-image" src="@coverImageUrl" alt="Bìa sách @loan.Book?.Title" loading="lazy" />
+                    }
+                    else
+                    {
+                        <strong>@loan.Book?.Title</strong><small>@loan.Book?.Author</small>
+                    }
+                </div>
                 <div class="loan-info"><strong>@loan.Book?.Title</strong><span>Phiếu mượn #@loan.Id</span><div class="progress"><i style="width:68%"></i></div></div>
                 <div class="due"><small>Hạn trả</small><strong>@VietnamTime.Convert(loan.DueDate).ToString("dd/MM/yyyy")</strong><em>@Model.RemainingDays(loan.DueDate)</em></div>
                 <a class="secondary" asp-page="/Loans">Chi tiết</a>
@@ -44,8 +54,18 @@
     <div class="book-grid">
         @foreach (var book in Model.Books.Take(4))
         {
+            var coverImageUrl = Model.GetAbsoluteBookCoverUrl(book.CoverImageUrl);
             <article class="book-card">
-                <div class="cover clean"><strong>@book.Title</strong><small>@book.Author</small></div>
+                <div class="cover clean">
+                    @if (coverImageUrl is not null)
+                    {
+                        <img class="cover-image" src="@coverImageUrl" alt="Bìa sách @book.Title" loading="lazy" />
+                    }
+                    else
+                    {
+                        <strong>@book.Title</strong><small>@book.Author</small>
+                    }
+                </div>
                 <div><span class="tag">@book.Category</span><h3>@book.Title</h3><p>@book.Author</p><small class="availability">@book.AvailableCopies bản có thể mượn</small></div>
             </article>
         }

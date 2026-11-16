@@ -5,12 +5,18 @@ internal static class AdminTheme
     public static readonly Color Canvas = Color.FromArgb(10, 16, 30);
     public static readonly Color Surface = Color.FromArgb(18, 27, 45);
     public static readonly Color SurfaceRaised = Color.FromArgb(25, 38, 60);
+    public static readonly Color Sidebar = Color.FromArgb(7, 12, 24);
     public static readonly Color Border = Color.FromArgb(43, 59, 82);
     public static readonly Color Accent = Color.FromArgb(55, 214, 220);
     public static readonly Color AccentHover = Color.FromArgb(39, 177, 188);
     public static readonly Color Text = Color.FromArgb(230, 238, 249);
     public static readonly Color Muted = Color.FromArgb(143, 160, 183);
     public static readonly Color Warning = Color.FromArgb(255, 184, 107);
+    public static readonly Color Danger = Color.FromArgb(255, 151, 164);
+    public static readonly Color DangerSurface = Color.FromArgb(66, 34, 47);
+    public static readonly Color Success = Color.FromArgb(119, 224, 193);
+    public static readonly Color SuccessSurface = Color.FromArgb(28, 66, 59);
+    public static readonly Color WarningSurface = Color.FromArgb(79, 63, 34);
 
     public static void StyleForm(Form form)
     {

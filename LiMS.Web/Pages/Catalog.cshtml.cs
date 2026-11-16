@@ -25,6 +25,9 @@ public class CatalogModel(LibraryApiClient libraryApi) : PageModel
     public IReadOnlyList<string> Categories { get; private set; } = [];
     public string? SearchError { get; private set; }
 
+    public string? GetAbsoluteBookCoverUrl(string? coverImageUrl) =>
+        libraryApi.GetAbsoluteBookCoverUrl(coverImageUrl);
+
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(HttpContext.Session.GetString("StudentCode")))

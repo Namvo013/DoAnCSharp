@@ -11,6 +11,9 @@ public sealed class BookModel(LibraryApiClient libraryApi) : PageModel
     public string? ErrorMessage { get; private set; }
     public string? SuccessMessage { get; private set; }
 
+    public string? GetAbsoluteBookCoverUrl(string? coverImageUrl) =>
+        libraryApi.GetAbsoluteBookCoverUrl(coverImageUrl);
+
     public async Task<IActionResult> OnGetAsync(int id, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(HttpContext.Session.GetString("StudentCode")))

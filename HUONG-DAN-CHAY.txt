@@ -1,0 +1,85 @@
+HƯỚNG DẪN CHẠY LiMS
+===================
+
+1. ĐIỀU KIỆN
+------------
+- Cài .NET SDK 10.
+- Bật dịch vụ SQL Server Express (SQLEXPRESS).
+- Database mặc định: LiMSDB.
+- API kết nối SQL Server qua LiMS.Api\appsettings.json.
+
+2. CHẠY CHƯƠNG TRÌNH ADMIN
+--------------------------
+Tại thư mục gốc DoAnC#, nhấp đúp:
+
+    start-admin.bat
+
+Launcher sẽ kiểm tra và tự khởi động API tại http://localhost:5107 nếu API chưa chạy,
+sau đó mở ứng dụng Admin.
+
+Đăng nhập Admin hiện tại:
+    Tên tài khoản: admin
+    Mật khẩu: mật khẩu bạn đã thiết lập riêng.
+
+Không lưu mật khẩu đăng nhập trong tệp hướng dẫn hoặc đưa lên GitHub.
+
+3. CHẠY WEBSITE CHO ĐỘC GIẢ
+---------------------------
+Tại thư mục gốc DoAnC#, nhấp đúp:
+
+    start-frontend.bat
+
+Launcher sẽ kiểm tra và tự khởi động API nếu cần, sau đó chạy website và mở trình duyệt.
+Địa chỉ website: http://localhost:5500
+Địa chỉ API:     http://localhost:5107
+
+Tài khoản độc giả không được tạo sẵn. Đăng nhập Admin, mở mục "Độc giả",
+chọn "Thêm độc giả", rồi tạo tài khoản và mật khẩu ban đầu cho người dùng website.
+Người dùng website đăng nhập bằng tài khoản độc giả vừa tạo.
+
+4. CHẠY CẢ ADMIN VÀ WEBSITE
+---------------------------
+Có thể chạy start-admin.bat và start-frontend.bat. Cả hai dùng chung API
+tại cổng 5107 và database LiMSDB; không cần khởi động hai API riêng.
+
+5. NẾU FILE BAT KHÔNG CHẠY
+--------------------------
+Mở PowerShell tại thư mục gốc DoAnC#, chạy lệnh tương ứng:
+
+    .\start-admin.bat
+
+hoặc:
+
+    .\start-frontend.bat
+
+Nếu muốn chạy thủ công, mở hai cửa sổ PowerShell.
+
+Cửa sổ 1 - khởi động API:
+
+    cd .\LiMS.Api
+    dotnet run --launch-profile http
+
+Giữ cửa sổ API mở trong lúc sử dụng chương trình.
+
+Cửa sổ 2 - chạy Admin:
+
+    cd ..
+    dotnet run --project .\LiMS.Admin\LiMS.Admin.csproj
+
+Hoặc chạy Website:
+
+    cd ..
+    dotnet run --project .\LiMS.Web\LiMS.Web.csproj --urls http://localhost:5500
+
+6. KIỂM TRA API
+---------------
+Mở trình duyệt tại:
+
+    http://localhost:5107/api/library/health
+
+Kết quả mong đợi:
+
+    {"status":"ok","database":true}
+
+Nếu báo lỗi SQL, kiểm tra dịch vụ SQLEXPRESS đang chạy và chuỗi kết nối trong
+LiMS.Api\appsettings.json đang trỏ tới localhost\SQLEXPRESS.

@@ -22,7 +22,8 @@ public sealed record ApiBook(
     int TotalCopies,
     int AvailableCopies,
     string? ShelfLocation = null,
-    string? Description = null);
+    string? Description = null,
+    string? CoverImageUrl = null);
 
 public sealed record ApiLoan(
     int Id,
@@ -65,3 +66,18 @@ public sealed record CreatedReservation(
     string Status);
 
 public sealed record LoanRenewalResult(long Id, DateOnly DueDate, short RenewCount, string Status);
+
+public sealed record CreatePurchaseProposalRequest(string Title, string Author, string Reason);
+
+public sealed record PurchaseProposal(
+    int ProposalId,
+    string ReaderName,
+    string ReaderCardNo,
+    string Title,
+    string Author,
+    string Reason,
+    string Status,
+    DateTimeOffset CreatedAt,
+    string? ReviewerName,
+    DateTimeOffset? ReviewedAt,
+    string? ReviewNote);

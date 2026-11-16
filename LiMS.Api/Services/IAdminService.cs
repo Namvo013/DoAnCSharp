@@ -7,14 +7,23 @@ public interface IAdminService
     Task<IReadOnlyList<BookResponse>> GetBooksAsync(string? search, CancellationToken cancellationToken);
     Task<BookResponse?> GetBookAsync(int id, CancellationToken cancellationToken);
     Task<IReadOnlyList<BookCopyResponse>> GetCopiesAsync(int bookId, CancellationToken cancellationToken);
+    Task<BookResponse> UploadBookCoverAsync(
+        int id,
+        Microsoft.AspNetCore.Http.IFormFile file,
+        int actorId,
+        CancellationToken cancellationToken);
     Task<BookResponse> CreateBookAsync(CreateBookRequest request, int actorId, CancellationToken cancellationToken);
     Task<BookResponse> UpdateBookAsync(int id, UpdateBookRequest request, int actorId, CancellationToken cancellationToken);
     Task AddCopiesAsync(int bookId, CreateCopiesRequest request, int actorId, CancellationToken cancellationToken);
     Task UpdateCopyStatusAsync(int copyId, CopyStatusRequest request, int actorId, CancellationToken cancellationToken);
-    Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(string? search, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ReaderResponse>> GetReadersAsync(
+    string? search,
+    string? cardStatus,
+    CancellationToken cancellationToken);
     Task<ReaderResponse?> GetReaderAsync(int readerId, CancellationToken cancellationToken);
     Task<ReaderResponse> CreateReaderAsync(CreateReaderRequest request, int actorId, CancellationToken cancellationToken);
     Task<ReaderResponse> UpdateReaderAsync(int readerId, UpdateReaderRequest request, int actorId, CancellationToken cancellationToken);
+    Task ResetReaderPasswordAsync(int readerId, ResetReaderPasswordRequest request, int actorId, CancellationToken cancellationToken);
     Task<DashboardResponse> GetDashboardAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<LoanResponse>> GetLoansAsync(string? status, CancellationToken cancellationToken);
     Task<LoanResponse?> GetLoanAsync(long loanId, CancellationToken cancellationToken);

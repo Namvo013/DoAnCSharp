@@ -47,10 +47,18 @@ public sealed record BookResponse(
     int TotalCopies,
     int AvailableCopies,
     string? ShelfLocation,
-    string? Description);
+    string? Description,
+    string? CoverImageUrl);
 
 /// <summary>Barcode, status, and parent book for one physical copy.</summary>
 public sealed record BookCopyResponse(int Id, int BookId, string Barcode, string Status);
+
+/// <summary>Image file uploaded as the cover of a book.</summary>
+public sealed record UploadBookCoverRequest
+{
+    [Required]
+    public required IFormFile File { get; init; }
+}
 
 /// <summary>Book metadata and the number of copies to register.</summary>
 public sealed record CreateBookRequest
@@ -178,6 +186,13 @@ public sealed record UpdateReaderRequest
 
     public DateOnly CardExpiryDate { get; init; }
     public bool IsActive { get; init; }
+}
+
+/// <summary>New password set by an administrator for a reader account.</summary>
+public sealed record ResetReaderPasswordRequest
+{
+    [Required, StringLength(256, MinimumLength = 8)]
+    public required string NewPassword { get; init; }
 }
 
 /// <summary>Reader account and library-card details.</summary>
@@ -314,12 +329,48 @@ public sealed record DashboardResponse(
     int OverdueLoans,
     int PendingReservations,
     int PendingProposals,
+    int ApprovedProposals,
+    int RejectedProposals,
     decimal UnpaidFines,
     decimal CollectedFines,
-    IReadOnlyList<PopularBookResponse> PopularBooks);
+    IReadOnlyList<PopularBookResponse> PopularBooks,
+    IReadOnlyList<MonthlyCirculationReportResponse> MonthlyReports);
 
 /// <summary>Loan total for one popular book.</summary>
 public sealed record PopularBookResponse(int BookId, string Title, int LoanCount);
+
+/// <summary>Monthly loan, return, and collected-fine totals for dashboard reporting.</summary>
+public sealed record MonthlyCirculationReportResponse(
+    string Month,
+    int BorrowCount,
+    int ReturnCount,
+    decimal CollectedFines);
+
+/// <summary>Summary of the SQL Server backup location and available backup files.</summary>
+public sealed record DatabaseBackupStatusResponse(
+    string DatabaseName,
+    string BackupDirectory,
+    IReadOnlyList<DatabaseBackupFileResponse> Backups);
+
+/// <summary>Metadata for one LiMS database backup file.</summary>
+public sealed record DatabaseBackupFileResponse(
+    string FileName,
+    long SizeBytes,
+    DateTimeOffset CreatedAt);
+
+/// <summary>Result of restoring a LiMS database backup.</summary>
+public sealed record DatabaseRestoreResponse(
+    string DatabaseName,
+    string RestoredFileName,
+    string SafetyBackupFileName,
+    DateTimeOffset CompletedAt);
+
+/// <summary>Confirms a restore by requiring the exact target database name.</summary>
+public sealed record RestoreDatabaseBackupRequest
+{
+    [Required, MaxLength(128)]
+    public required string ConfirmDatabaseName { get; init; }
+}
 
 /// <summary>Business rule stored in system configuration.</summary>
 public sealed record SystemConfigResponse(string Key, string Value, string? Description, DateTimeOffset UpdatedAt);

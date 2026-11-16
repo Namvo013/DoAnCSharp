@@ -109,6 +109,8 @@ public sealed class Book
     public short? PublishYear { get; set; }
     public string? ShelfLocation { get; set; }
     public string? Description { get; set; }
+    public byte[]? CoverImageData { get; set; }
+    public string? CoverImageContentType { get; set; }
     public bool IsActive { get; set; } = true;
     public Category Category { get; set; } = null!;
     public ICollection<BookCopy> Copies { get; set; } = new List<BookCopy>();
