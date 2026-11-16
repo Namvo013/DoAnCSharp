@@ -6,6 +6,7 @@
     <title>@ViewData["Title"] - LiMS</title>
     <link rel="stylesheet" href="~/css/lims.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/lims-overrides.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/design-system.css" asp-append-version="true" />
 </head>
 <body>
     @{
@@ -20,13 +21,15 @@
                 <div class="brand-mark">Li</div>
                 <div><strong>LiMS</strong><small>Thư viện Đại học Sài Gòn</small></div>
             </a>
+            <button class="mobile-menu" type="button" data-mobile-menu
+                    aria-controls="library-sidebar" aria-expanded="false" aria-label="Mở điều hướng">☰</button>
             <div class="top-actions">
                 <div class="avatar">@(fullName?.FirstOrDefault() ?? 'V')</div>
                 <div class="top-user"><strong>@fullName</strong><small>@studentCode</small></div>
             </div>
         </header>
         <div class="layout">
-            <aside class="sidebar">
+            <aside class="sidebar" id="library-sidebar" aria-label="Điều hướng chính">
                 <a class="nav-item @(Context.Request.Path == "/Home" ? "active" : "")" asp-page="/Home">⌂ <span>Trang chủ</span></a>
                 <a class="nav-item @(Context.Request.Path == "/Catalog" ? "active" : "")" asp-page="/Catalog">⌕ <span>Tra cứu tài liệu</span></a>
                 <a class="nav-item @(Context.Request.Path == "/Loans" ? "active" : "")" asp-page="/Loans">▣ <span>Thông tin tình trạng sách</span></a>
@@ -47,6 +50,19 @@
     {
         @RenderBody()
     }
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-relevant="additions text"></div>
+    <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title">
+        <div class="confirm-dialog__content">
+            <div class="confirm-dialog__icon" aria-hidden="true">!</div>
+            <h2 id="confirm-title">Xác nhận thao tác</h2>
+            <p data-confirm-message></p>
+            <div class="confirm-dialog__actions">
+                <button class="secondary" type="button" data-confirm-cancel>Quay lại</button>
+                <button class="danger-light" type="button" data-confirm-accept>Xác nhận</button>
+            </div>
+        </div>
+    </dialog>
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

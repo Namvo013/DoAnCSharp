@@ -36,7 +36,8 @@
             @if (canCancel && !isExpired)
             {
                 <form method="post" asp-page-handler="Cancel" asp-route-reservationId="@reservation.Id"
-                      onsubmit="return confirm('Xác nhận hủy phiếu đặt giữ này?');">
+                      data-confirm="Bạn có chắc muốn hủy phiếu đặt giữ này?"
+                      onsubmit="return window.libraryUiReady || confirm(this.dataset.confirm);">
                     <button class="danger-light compact" type="submit">Hủy đặt giữ</button>
                 </form>
             }

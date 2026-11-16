@@ -2,21 +2,23 @@ namespace LiMS.Admin.Forms;
 
 internal static class AdminTheme
 {
-    public static readonly Color Canvas = Color.FromArgb(10, 16, 30);
-    public static readonly Color Surface = Color.FromArgb(18, 27, 45);
-    public static readonly Color SurfaceRaised = Color.FromArgb(25, 38, 60);
-    public static readonly Color Sidebar = Color.FromArgb(7, 12, 24);
-    public static readonly Color Border = Color.FromArgb(43, 59, 82);
-    public static readonly Color Accent = Color.FromArgb(55, 214, 220);
-    public static readonly Color AccentHover = Color.FromArgb(39, 177, 188);
-    public static readonly Color Text = Color.FromArgb(230, 238, 249);
-    public static readonly Color Muted = Color.FromArgb(143, 160, 183);
-    public static readonly Color Warning = Color.FromArgb(255, 184, 107);
-    public static readonly Color Danger = Color.FromArgb(255, 151, 164);
-    public static readonly Color DangerSurface = Color.FromArgb(66, 34, 47);
-    public static readonly Color Success = Color.FromArgb(119, 224, 193);
-    public static readonly Color SuccessSurface = Color.FromArgb(28, 66, 59);
-    public static readonly Color WarningSurface = Color.FromArgb(79, 63, 34);
+    public static readonly Color Canvas = Color.FromArgb(243, 247, 252);
+    public static readonly Color Surface = Color.White;
+    public static readonly Color SurfaceRaised = Color.FromArgb(239, 244, 250);
+    public static readonly Color Sidebar = Color.FromArgb(17, 34, 57);
+    public static readonly Color SidebarRaised = Color.FromArgb(31, 52, 79);
+    public static readonly Color SidebarText = Color.FromArgb(205, 218, 234);
+    public static readonly Color Border = Color.FromArgb(216, 226, 238);
+    public static readonly Color Accent = Color.FromArgb(37, 99, 235);
+    public static readonly Color AccentHover = Color.FromArgb(29, 78, 216);
+    public static readonly Color Text = Color.FromArgb(23, 38, 60);
+    public static readonly Color Muted = Color.FromArgb(91, 109, 132);
+    public static readonly Color Warning = Color.FromArgb(146, 83, 0);
+    public static readonly Color Danger = Color.FromArgb(180, 35, 24);
+    public static readonly Color DangerSurface = Color.FromArgb(254, 226, 226);
+    public static readonly Color Success = Color.FromArgb(22, 101, 52);
+    public static readonly Color SuccessSurface = Color.FromArgb(220, 252, 231);
+    public static readonly Color WarningSurface = Color.FromArgb(254, 243, 199);
 
     public static void StyleForm(Form form)
     {
@@ -30,7 +32,7 @@ internal static class AdminTheme
         button.FlatStyle = FlatStyle.Flat;
         button.UseVisualStyleBackColor = false;
         button.BackColor = primary ? Accent : SurfaceRaised;
-        button.ForeColor = primary ? Canvas : Text;
+        button.ForeColor = primary ? Color.White : Text;
         button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
         button.Padding = new Padding(12, 4, 12, 4);
         button.Cursor = Cursors.Hand;
@@ -65,10 +67,10 @@ internal static class AdminTheme
         grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Accent;
         grid.DefaultCellStyle.BackColor = Surface;
         grid.DefaultCellStyle.ForeColor = Text;
-        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(31, 77, 93);
+        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
         grid.DefaultCellStyle.SelectionForeColor = Text;
         grid.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
-        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(21, 32, 51);
-        grid.RowTemplate.Height = 36;
+        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(246, 249, 253);
+        grid.RowTemplate.Height = 40;
     }
 }

@@ -9,8 +9,12 @@
         <span class="eyebrow">TỔNG QUAN</span>
         <h1>Xin chào, @Model.FirstName!</h1>
         <p>Hôm nay, thư viện có gì dành cho bạn?</p>
+        <a class="primary home-catalog-link" asp-page="/Catalog">Khám phá tài liệu <span aria-hidden="true">→</span></a>
     </div>
-    <div class="date">@Model.TodayWeekday<br /><strong>@Model.TodayLabel</strong></div>
+    <div class="date">
+        <span>@Model.TodayWeekday</span><br />
+        <strong>@Model.TodayLabel</strong>
+    </div>
 </div>
 
 <section class="stats">
@@ -52,6 +56,10 @@
 <section class="panel recommendations">
     <div class="panel-head"><h2>Sách trong thư viện</h2><a asp-page="/Catalog">Tra cứu tài liệu →</a></div>
     <div class="book-grid">
+        @if (Model.Books.Count == 0)
+        {
+            <div class="empty-state"><strong>Chưa có tài liệu để gợi ý</strong><p>Thư viện sẽ cập nhật danh mục tại đây.</p></div>
+        }
         @foreach (var book in Model.Books.Take(4))
         {
             var coverImageUrl = Model.GetAbsoluteBookCoverUrl(book.CoverImageUrl);
@@ -66,7 +74,12 @@
                         <strong>@book.Title</strong><small>@book.Author</small>
                     }
                 </div>
-                <div><span class="tag">@book.Category</span><h3>@book.Title</h3><p>@book.Author</p><small class="availability">@book.AvailableCopies bản có thể mượn</small></div>
+                <div>
+                    <span class="tag">@book.Category</span>
+                    <h3><a asp-page="/Book" asp-route-id="@book.Id">@book.Title</a></h3>
+                    <p>@book.Author</p>
+                    <small class="availability">@book.AvailableCopies bản có thể mượn</small>
+                </div>
             </article>
         }
     </div>

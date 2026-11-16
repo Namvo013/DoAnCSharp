@@ -23,7 +23,7 @@
                     <div asp-validation-summary="ModelOnly" class="login-error validation-summary-valid" role="alert"></div>
                     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
                     {
-                        <p class="success-message">@Model.SuccessMessage</p>
+                        <p class="success-message" data-toast role="status">@Model.SuccessMessage</p>
                     }
                     <label asp-for="CurrentPassword">Mật khẩu hiện tại<input asp-for="CurrentPassword" type="password" minlength="6" required /></label>
                     <label asp-for="NewPassword">Mật khẩu mới<input asp-for="NewPassword" type="password" minlength="8" required /></label>

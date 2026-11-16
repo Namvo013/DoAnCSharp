@@ -11,7 +11,7 @@ public sealed class AdminMainForm : Form
     private static readonly Color SurfaceColor = AdminTheme.Surface;
     private static readonly Color SidebarColor = AdminTheme.Sidebar;
     private static readonly Color PrimaryColor = AdminTheme.Accent;
-    private static readonly Color BorrowColor = Color.FromArgb(111, 176, 255);
+    private static readonly Color BorrowColor = Color.FromArgb(12, 125, 148);
     private static readonly Color ReturnColor = AdminTheme.Accent;
     private static readonly Color TextColor = AdminTheme.Text;
     private static readonly Color MutedColor = AdminTheme.Muted;
@@ -565,7 +565,12 @@ public sealed class AdminMainForm : Form
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
 
-        var brand = new Panel { Dock = DockStyle.Fill, Padding = new Padding(22, 20, 12, 10) };
+        var brand = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(22, 20, 12, 10),
+            BackColor = SidebarColor
+        };
         brand.Controls.Add(new Label
         {
             Text = "LiMS",
@@ -579,7 +584,7 @@ public sealed class AdminMainForm : Form
             Text = "QUẢN LÝ THƯ VIỆN",
             Dock = DockStyle.Bottom,
             Height = 24,
-            ForeColor = MutedColor,
+            ForeColor = AdminTheme.SidebarText,
             Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
         });
 
@@ -603,15 +608,16 @@ public sealed class AdminMainForm : Form
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(18, 0, 8, 0),
                 FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false,
                 BackColor = SidebarColor,
-                ForeColor = TextColor,
+                ForeColor = AdminTheme.SidebarText,
                 Font = new Font("Segoe UI", 9.5F),
                 Cursor = Cursors.Hand,
                 Margin = new Padding(0, 0, 0, 6),
                 Tag = tab
             };
             button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor = AdminTheme.SurfaceRaised;
+            button.FlatAppearance.MouseOverBackColor = AdminTheme.SidebarRaised;
             button.Click += (_, _) => _tabs.SelectedTab = tab;
             _navigationButtons.Add(button);
             navigation.Controls.Add(button);
@@ -621,7 +627,7 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(20, 14, 12, 10),
-            BackColor = AdminTheme.SurfaceRaised
+            BackColor = AdminTheme.SidebarRaised
         };
         userPanel.Controls.Add(new Label
         {
@@ -698,7 +704,7 @@ public sealed class AdminMainForm : Form
         {
             var selected = ReferenceEquals(button.Tag, _tabs.SelectedTab);
             button.BackColor = selected ? PrimaryColor : SidebarColor;
-            button.ForeColor = selected ? CanvasColor : TextColor;
+            button.ForeColor = selected ? Color.White : AdminTheme.SidebarText;
             button.Font = new Font("Segoe UI", 9.5F, selected ? FontStyle.Bold : FontStyle.Regular);
         }
     }
@@ -1475,7 +1481,7 @@ public sealed class AdminMainForm : Form
                 : primary ? PrimaryColor : AdminTheme.SurfaceRaised,
             ForeColor = destructive
                 ? AdminTheme.Danger
-                : primary ? CanvasColor : TextColor,
+                : primary ? Color.White : TextColor,
             Font = new Font("Segoe UI", 9F, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
