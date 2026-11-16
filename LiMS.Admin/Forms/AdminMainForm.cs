@@ -54,6 +54,7 @@ public sealed class AdminMainForm : Form
     private readonly List<Button> _navigationButtons = [];
     private DashboardResponse? _latestDashboard;
     private DatabaseBackupStatusResponse? _databaseBackupStatus;
+    private bool _isUpdatingReaderActivity;
 
     public AdminMainForm(AdminApiClient api, LoginResponse user)
     {
@@ -175,6 +176,8 @@ public sealed class AdminMainForm : Form
 
     private void AddReadersPage()
     {
+        _readersGrid.CellClick += ToggleReaderActivityAsync;
+
         var actions = new List<(string Title, Func<Task> Action)>
     {
         ("Tìm độc giả", SearchReadersAsync),
@@ -918,6 +921,40 @@ public sealed class AdminMainForm : Form
                 cardStatus,
                 CancellationToken.None)
         ).ToList();
+    }
+
+    private async void ToggleReaderActivityAsync(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (_isUpdatingReaderActivity
+            || e.RowIndex < 0
+            || e.ColumnIndex < 0
+            || _readersGrid.Columns[e.ColumnIndex].DataPropertyName != nameof(ReaderResponse.IsActive)
+            || _readersGrid.Rows[e.RowIndex].DataBoundItem is not ReaderResponse reader)
+            return;
+
+        _isUpdatingReaderActivity = true;
+        try
+        {
+            await RunAsync(async () =>
+            {
+                await _api.UpdateReaderAsync(
+                    reader.ReaderId,
+                    new UpdateReaderRequest(
+                        reader.FullName,
+                        reader.Email,
+                        reader.Phone,
+                        reader.CardStatus,
+                        reader.BorrowLimit,
+                        reader.CardExpiryDate,
+                        !reader.IsActive),
+                    CancellationToken.None);
+                await LoadReadersAsync();
+            });
+        }
+        finally
+        {
+            _isUpdatingReaderActivity = false;
+        }
     }
 
     private async Task SearchBooksAsync()
