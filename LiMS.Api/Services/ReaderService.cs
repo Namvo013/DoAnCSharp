@@ -9,6 +9,8 @@ public sealed class ReaderService(
     LiMSDbContext db,
     IReservationQueueService reservationQueue) : IReaderService
 {
+    private const int ReservationRequestValidityDays = 7;
+
     public async Task<ReservationResponse?> GetReservationAsync(
         int accountId,
         long reservationId,
@@ -163,7 +165,7 @@ public sealed class ReaderService(
             ReaderId = reader.ReaderId,
             BookId = book.BookId,
             CreatedAt = now,
-            ExpireAt = now.AddDays(30),
+            ExpireAt = now.AddDays(ReservationRequestValidityDays),
             Status = RecordStatuses.Pending
         };
         db.Reservations.Add(reservation);

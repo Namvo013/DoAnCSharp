@@ -80,6 +80,7 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
                     loan.Copy.Book.PublishYear,
                     loan.Copy.Book.Copies.Count,
                     loan.Copy.Book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+                    loan.Copy.Book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
                     loan.Copy.Book.ShelfLocation,
                     loan.Copy.Book.Description,
                     loan.Copy.Book.CoverImageContentType == null
@@ -124,6 +125,7 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
                     item.Book.PublishYear,
                     item.Book.Copies.Count,
                     item.Book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+                    item.Book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
                     item.Book.ShelfLocation,
                     item.Book.Description,
                     item.Book.CoverImageContentType == null
@@ -168,6 +170,7 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             book.PublishYear,
             book.Copies.Count,
             book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+            book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
             book.ShelfLocation,
             book.Description,
             book.CoverImageContentType == null

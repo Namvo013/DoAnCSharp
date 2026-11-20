@@ -24,6 +24,7 @@ public sealed record ApiBook(
     int? PublishedYear,
     int TotalCopies,
     int AvailableCopies,
+    int OnLoanCopies,
     string? ShelfLocation = null,
     string? Description = null,
     string? CoverImageUrl = null);

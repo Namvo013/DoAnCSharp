@@ -61,6 +61,7 @@ public sealed record BookResponse(
     int? PublishedYear,
     int TotalCopies,
     int AvailableCopies,
+    int OnLoanCopies,
     string? ShelfLocation,
     string? Description,
     string? CoverImageUrl);

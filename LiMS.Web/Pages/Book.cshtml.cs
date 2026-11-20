@@ -31,8 +31,10 @@ public sealed class BookModel(LibraryApiClient libraryApi) : PageModel
         try
         {
             var reservation = await libraryApi.CreateReservationAsync(id, cancellationToken);
-            TempData["SuccessMessage"] =
-                $"Đặt giữ thành công: {reservation.BookTitle}, mã phiếu {reservation.Id}.";
+            TempData["ReservationResultType"] = "created";
+            TempData["ReservationResultBookTitle"] = reservation.BookTitle;
+            TempData["ReservationResultId"] = reservation.Id.ToString();
+            TempData["ReservationResultStatus"] = reservation.Status;
             return RedirectToPage("/Reservations");
         }
         catch (LibraryApiClient.LibraryApiException exception)
