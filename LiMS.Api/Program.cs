@@ -105,6 +105,8 @@ builder.Services.AddScoped<IDatabaseMaintenanceService, DatabaseMaintenanceServi
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddScoped<IReservationQueueService, ReservationQueueService>();
 builder.Services.AddScoped<ILibraryQueryService, LibraryQueryService>();
+// Tự động xử lý các yêu cầu đặt giữ sách đã hết hạn.
+builder.Services.AddHostedService<XuLyHetHanDatGiuSachBackgroundService>();
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
     policy.WithOrigins("http://localhost:5500", "http://127.0.0.1:5500")
           .AllowAnyHeader().AllowAnyMethod()));
