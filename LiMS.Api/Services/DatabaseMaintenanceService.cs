@@ -198,18 +198,18 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
         const string query = """
             SELECT TOP (100)
                 media.physical_device_name,
-                backup.backup_size,
-                backup.backup_finish_date
-            FROM msdb.dbo.backupset AS backup
+                bs.backup_size,
+                bs.backup_finish_date
+            FROM msdb.dbo.backupset AS bs
             INNER JOIN msdb.dbo.backupmediafamily AS media
-                ON backup.media_set_id = media.media_set_id
-            WHERE backup.database_name = @databaseName
-                AND backup.type = 'D'
-                AND backup.backup_finish_date IS NOT NULL
+                ON bs.media_set_id = media.media_set_id
+            WHERE bs.database_name = @databaseName
+                AND bs.type = 'D'
+                AND bs.backup_finish_date IS NOT NULL
                 AND media.device_type = 2
                 AND LEFT(media.physical_device_name, LEN(@backupDirectory) + 1)
                     = @backupDirectory + NCHAR(92)
-            ORDER BY backup.backup_finish_date DESC;
+            ORDER BY bs.backup_finish_date DESC;
             """;
 
         await using var connection = await OpenMasterConnectionAsync(cancellationToken);
@@ -243,17 +243,17 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
     {
         const string query = """
             SELECT TOP (1)
-                backup.backup_size,
-                backup.backup_finish_date
-            FROM msdb.dbo.backupset AS backup
+                bs.backup_size,
+                bs.backup_finish_date
+            FROM msdb.dbo.backupset AS bs
             INNER JOIN msdb.dbo.backupmediafamily AS media
-                ON backup.media_set_id = media.media_set_id
-            WHERE backup.database_name = @databaseName
-                AND backup.type = 'D'
-                AND backup.backup_finish_date IS NOT NULL
+                ON bs.media_set_id = media.media_set_id
+            WHERE bs.database_name = @databaseName
+                AND bs.type = 'D'
+                AND bs.backup_finish_date IS NOT NULL
                 AND media.device_type = 2
                 AND media.physical_device_name = @backupPath
-            ORDER BY backup.backup_finish_date DESC;
+            ORDER BY bs.backup_finish_date DESC;
             """;
 
         await using var connection = await OpenMasterConnectionAsync(cancellationToken);

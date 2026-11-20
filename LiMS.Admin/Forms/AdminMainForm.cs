@@ -11,7 +11,7 @@ public sealed class AdminMainForm : Form
     private static readonly Color SurfaceColor = AdminTheme.Surface;
     private static readonly Color SidebarColor = AdminTheme.Sidebar;
     private static readonly Color PrimaryColor = AdminTheme.Accent;
-    private static readonly Color BorrowColor = Color.FromArgb(12, 125, 148);
+    private static readonly Color BorrowColor = Color.FromArgb(95, 137, 104);
     private static readonly Color ReturnColor = AdminTheme.Accent;
     private static readonly Color TextColor = AdminTheme.Text;
     private static readonly Color MutedColor = AdminTheme.Muted;
@@ -111,7 +111,7 @@ public sealed class AdminMainForm : Form
             BackColor = CanvasColor
         };
         var layout = CreatePageLayout();
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
         layout.Controls.Add(CreatePageHeader(
@@ -288,8 +288,8 @@ public sealed class AdminMainForm : Form
             BackColor = CanvasColor
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.Controls.Add(CreatePageHeader("Sao lưu & phục hồi", GetPageDescription("Sao lưu & phục hồi")), 0, 0);
@@ -329,8 +329,8 @@ public sealed class AdminMainForm : Form
             BackColor = CanvasColor
         };
         var layout = CreatePageLayout();
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.Controls.Add(CreatePageHeader(title, GetPageDescription(title)), 0, 0);
 
@@ -378,7 +378,7 @@ public sealed class AdminMainForm : Form
             AutoSize = true,
             Font = new Font("Segoe UI", 20, FontStyle.Bold),
             ForeColor = TextColor,
-            Location = new Point(0, 2)
+            Location = new Point(0, 0)
         };
         var descriptionLabel = new Label
         {
@@ -386,7 +386,7 @@ public sealed class AdminMainForm : Form
             AutoSize = true,
             Font = new Font("Segoe UI", 9.5F),
             ForeColor = MutedColor,
-            Location = new Point(2, 39)
+            Location = new Point(2, 47)
         };
         header.Controls.Add(descriptionLabel);
         header.Controls.Add(titleLabel);
@@ -426,7 +426,7 @@ public sealed class AdminMainForm : Form
         {
             "OverdueLoans" => Color.FromArgb(196, 74, 69),
             "UnpaidFines" => Color.FromArgb(190, 132, 47),
-            "AvailableCopies" => Color.FromArgb(67, 125, 166),
+            "AvailableCopies" => Color.FromArgb(95, 137, 104),
             _ => PrimaryColor
         };
         var card = new Panel
@@ -460,7 +460,7 @@ public sealed class AdminMainForm : Form
             Text = title,
             Dock = DockStyle.Fill,
             ForeColor = MutedColor,
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
             TextAlign = ContentAlignment.MiddleLeft,
             AutoEllipsis = true,
             Margin = Padding.Empty
@@ -575,7 +575,7 @@ public sealed class AdminMainForm : Form
         {
             Text = "LiMS",
             Dock = DockStyle.Top,
-            Height = 38,
+            Height = 46,
             ForeColor = Color.White,
             Font = new Font("Segoe UI", 22, FontStyle.Bold)
         });
@@ -604,7 +604,7 @@ public sealed class AdminMainForm : Form
             {
                 Text = tab.Text,
                 Width = 212,
-                Height = 46,
+                Height = 50,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = new Padding(18, 0, 8, 0),
                 FlatStyle = FlatStyle.Flat,
@@ -613,7 +613,7 @@ public sealed class AdminMainForm : Form
                 ForeColor = AdminTheme.SidebarText,
                 Font = new Font("Segoe UI", 9.5F),
                 Cursor = Cursors.Hand,
-                Margin = new Padding(0, 0, 0, 6),
+                Margin = new Padding(0, 0, 0, 8),
                 Tag = tab
             };
             button.FlatAppearance.BorderSize = 0;
@@ -659,9 +659,9 @@ public sealed class AdminMainForm : Form
         var header = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 82,
+            Height = 90,
             BackColor = SurfaceColor,
-            Padding = new Padding(30, 16, 28, 14)
+            Padding = new Padding(30, 18, 28, 16)
         };
         _currentPageTitle.Text = "Tổng quan";
         _currentPageTitle.Dock = DockStyle.Left;
@@ -727,8 +727,8 @@ public sealed class AdminMainForm : Form
         var toolbar = new FlowLayoutPanel
         {
             Dock = DockStyle.Top,
-            Height = 48,
-            Padding = new Padding(0, 3, 0, 4),
+            Height = 54,
+            Padding = new Padding(0, 4, 0, 4),
             WrapContents = false,
             AutoScroll = true,
             BackColor = CanvasColor
@@ -1472,8 +1472,8 @@ public sealed class AdminMainForm : Form
         {
             Text = title,
             AutoSize = true,
-            MinimumSize = new Size(96, 36),
-            Padding = new Padding(12, 4, 12, 4),
+            MinimumSize = new Size(96, 42),
+            Padding = new Padding(12, 7, 12, 7),
             Margin = new Padding(4, 0, 4, 0),
             FlatStyle = FlatStyle.Flat,
             BackColor = destructive
@@ -1482,7 +1482,7 @@ public sealed class AdminMainForm : Form
             ForeColor = destructive
                 ? AdminTheme.Danger
                 : primary ? Color.White : TextColor,
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
             Cursor = Cursors.Hand
         };
         button.FlatAppearance.BorderSize = destructive || !primary ? 1 : 0;
