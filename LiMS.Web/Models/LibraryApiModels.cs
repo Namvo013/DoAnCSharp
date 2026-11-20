@@ -48,9 +48,14 @@ public sealed record ApiReservation(
     string Status,
     ApiBook? Book);
 
+/// <summary>
+/// Thông tin thông báo dành cho độc giả.
+/// </summary>
 public sealed record ApiNotification(
-    int Id,
+    long Id,
+    string Title,
     string Message,
+    string Type,
     DateTimeOffset CreatedAt,
     bool IsRead);
 

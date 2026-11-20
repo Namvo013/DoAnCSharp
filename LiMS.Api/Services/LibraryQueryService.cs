@@ -143,20 +143,37 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             item.Book)).ToArray();
     }
 
-    public async Task<IReadOnlyList<ReaderNotificationResponse>> GetReaderNotificationsAsync(
+    public async Task<IReadOnlyList<ReaderNotificationResponse>>
+    GetReaderNotificationsAsync(
         int readerId,
         CancellationToken cancellationToken)
     {
-        var emails = await db.EmailLogs.AsNoTracking()
+        // Chỉ lấy thông báo thuộc về độc giả đang được truy vấn.
+        var notifications = await db.ReaderNotifications
+            .AsNoTracking()
             .Where(item => item.ReaderId == readerId)
-            .OrderByDescending(item => item.SentAt)
-            .Select(item => new { item.EmailId, item.EmailType, item.SentAt })
+            .OrderByDescending(item => item.CreatedAt)
+            .Select(item => new
+            {
+                item.NotificationId,
+                item.Title,
+                item.Message,
+                item.Type,
+                item.CreatedAt,
+                item.IsRead
+            })
             .ToListAsync(cancellationToken);
-        return emails.Select(item => new ReaderNotificationResponse(
-            item.EmailId,
-            item.EmailType,
-            ToUtcOffset(item.SentAt),
-            true)).ToArray();
+
+        // Chuyển entity sang DTO trả về cho API.
+        return notifications.Select(item =>
+            new ReaderNotificationResponse(
+                item.NotificationId,
+                item.Title,
+                item.Message,
+                item.Type,
+                ToUtcOffset(item.CreatedAt),
+                item.IsRead))
+            .ToArray();
     }
 
     private static System.Linq.Expressions.Expression<Func<Book, BookResponse>> MapBook() =>

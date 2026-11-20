@@ -62,6 +62,13 @@ public sealed class Reader
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
     public ICollection<PurchaseProposal> PurchaseProposals { get; set; } = new List<PurchaseProposal>();
     public ICollection<EmailLog> EmailLogs { get; set; } = new List<EmailLog>();
+    // Danh sách thông báo nội bộ của độc giả.
+    public ICollection<ReaderNotification> Notifications { get; set; }
+        = new List<ReaderNotification>();
+
+    // Danh sách sự kiện đang chờ hệ thống xử lý thành thông báo.
+    public ICollection<NotificationOutbox> NotificationOutboxes { get; set; }
+        = new List<NotificationOutbox>();
 }
 
 /// <summary>Hồ sơ thủ thư chịu trách nhiệm ghi nhận nghiệp vụ tại quầy.</summary>
@@ -218,4 +225,68 @@ public sealed class EmailLog
     public Reader Reader { get; set; } = null!;
     public Loan? Loan { get; set; }
     public Reservation? Reservation { get; set; }
+}
+
+
+/// <summary>
+/// Thông báo nội bộ được lưu lại để độc giả xem trên giao diện Web.
+/// </summary>
+public sealed class ReaderNotification
+{
+    public long NotificationId { get; set; }
+
+    // Độc giả nhận thông báo.
+    public int ReaderId { get; set; }
+
+    // Tiêu đề và nội dung hiển thị.
+    public required string Title { get; set; }
+    public required string Message { get; set; }
+
+    // DueSoon, Overdue, ReservationReady,
+    // ReservationExpired, ReservationCancelled.
+    public required string Type { get; set; }
+
+    // Loại và ID đối tượng liên quan: Loan hoặc Reservation.
+    public string? RelatedEntityType { get; set; }
+    public long? RelatedEntityId { get; set; }
+
+    // Trạng thái đã đọc.
+    public bool IsRead { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ReadAt { get; set; }
+
+    // Chống tạo thông báo trùng lặp.
+    public required string DeduplicationKey { get; set; }
+
+    public Reader Reader { get; set; } = null!;
+}
+
+/// <summary>
+/// Hàng đợi sự kiện để xử lý thông báo sau khi nghiệp vụ chính hoàn tất.
+/// </summary>
+public sealed class NotificationOutbox
+{
+    public long OutboxId { get; set; }
+
+    public int ReaderId { get; set; }
+
+    // Ví dụ: ReservationReady, ReservationExpired,
+    // ReservationCancelled.
+    public required string EventType { get; set; }
+
+    // ID phiếu đặt giữ phát sinh sự kiện.
+    public long ReservationId { get; set; }
+
+    // Khóa chống ghi sự kiện trùng.
+    public required string DeduplicationKey { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // null nghĩa là chưa xử lý.
+    public DateTime? ProcessedAt { get; set; }
+
+    public int Attempts { get; set; } = 0;
+    public string? LastError { get; set; }
+
+    public Reader Reader { get; set; } = null!;
 }

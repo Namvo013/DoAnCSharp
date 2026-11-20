@@ -1,57 +1,60 @@
-
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace LiMS.Api.Services;
 
 /// <summary>
-/// Tự động kiểm tra và xử lý các yêu cầu đặt giữ sách đã hết hạn.
+/// Worker định kỳ xử lý đặt giữ hết hạn và các thông báo nội bộ.
 /// </summary>
 public sealed class XuLyHetHanDatGiuSachBackgroundService(
     IServiceScopeFactory scopeFactory,
     ILogger<XuLyHetHanDatGiuSachBackgroundService> logger)
     : BackgroundService
 {
-    private static readonly TimeSpan ChuKyXuLy = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan ChuKyXuLy =
+        TimeSpan.FromMinutes(1);
 
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
     {
         logger.LogInformation(
-            "Dịch vụ tự động xử lý hết hạn đặt giữ sách đã khởi động.");
+            "Dịch vụ xử lý đặt giữ hết hạn và thông báo đã khởi động.");
 
         using var timer = new PeriodicTimer(ChuKyXuLy);
 
-        // Chờ một phút trước lần quét đầu tiên để API khởi động ổn định.
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                await XuLyDatGiuHetHanAsync(stoppingToken);
+                // Sử dụng chung một thời điểm UTC cho toàn bộ chu kỳ xử lý.
+                var now = DateTime.UtcNow;
+
+                await XuLyDatGiuHetHanAsync(now, stoppingToken);
+                await XuLyOutboxAsync(now, stoppingToken);
+                await XuLyNhacHanMuonSachAsync(now, stoppingToken);
             }
         }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        catch (OperationCanceledException)
+            when (stoppingToken.IsCancellationRequested)
         {
             // API đang tắt, kết thúc Worker bình thường.
         }
 
         logger.LogInformation(
-            "Dịch vụ tự động xử lý hết hạn đặt giữ sách đã dừng.");
+            "Dịch vụ xử lý đặt giữ hết hạn và thông báo đã dừng.");
     }
 
     private async Task XuLyDatGiuHetHanAsync(
-        CancellationToken cancellationToken)
+    DateTime now,
+    CancellationToken cancellationToken)
     {
         try
         {
-            // Tạo scope riêng để sử dụng các dịch vụ Scoped như DbContext.
             await using var scope = scopeFactory.CreateAsyncScope();
 
             var reservationQueue = scope.ServiceProvider
                 .GetRequiredService<IReservationQueueService>();
-
-            var now = DateTime.UtcNow;
 
             var processedCount =
                 await reservationQueue.ProcessExpiredReservationsAsync(
@@ -61,20 +64,92 @@ public sealed class XuLyHetHanDatGiuSachBackgroundService(
             if (processedCount > 0)
             {
                 logger.LogInformation(
-                    "Đã tự động xử lý {Count} yêu cầu đặt giữ sách hết hạn.",
+                    "Đã xử lý {Count} yêu cầu đặt giữ hết hạn.",
                     processedCount);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
         {
-            // Không ghi nhận việc API dừng như một lỗi xử lý.
             throw;
         }
         catch (Exception exception)
         {
             logger.LogError(
                 exception,
-                "Lỗi khi tự động xử lý các yêu cầu đặt giữ sách hết hạn.");
+                "Lỗi khi xử lý đặt giữ sách hết hạn.");
+        }
+    }
+
+    private async Task XuLyOutboxAsync(
+    DateTime now,
+    CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+
+            var processor = scope.ServiceProvider
+                .GetRequiredService<NotificationOutboxProcessorService>();
+
+            var processedCount =
+                await processor.ProcessPendingAsync(
+                    now,
+                    cancellationToken);
+
+            if (processedCount > 0)
+            {
+                logger.LogInformation(
+                    "Đã chuyển {Count} sự kiện Outbox thành thông báo.",
+                    processedCount);
+            }
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Lỗi khi xử lý hàng đợi thông báo Outbox.");
+        }
+    }
+
+    private async Task XuLyNhacHanMuonSachAsync(
+    DateTime now,
+    CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+
+            var scheduler = scope.ServiceProvider
+                .GetRequiredService<LoanNotificationSchedulerService>();
+
+            var createdCount =
+                await scheduler.ProcessRemindersAsync(
+                    now,
+                    cancellationToken);
+
+            if (createdCount > 0)
+            {
+                logger.LogInformation(
+                    "Đã tạo {Count} thông báo nhắc hạn/quá hạn mượn sách.",
+                    createdCount);
+            }
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Lỗi khi tạo thông báo nhắc hạn và quá hạn mượn sách.");
         }
     }
 }

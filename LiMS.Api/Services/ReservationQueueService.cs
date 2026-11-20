@@ -1,4 +1,4 @@
-
+﻿
 using System.Data;
 using LiMS.Api.Data;
 using LiMS.Api.Models;
@@ -22,6 +22,27 @@ public sealed class ReservationQueueService(LiMSDbContext db)
     : IReservationQueueService
 {
     /// <summary>
+    /// Ghi nhận sự kiện thay đổi trạng thái đặt giữ vào Outbox.
+    /// Việc ghi cùng DbContext giúp sự kiện đi cùng transaction nghiệp vụ.
+    /// </summary>
+    private void AddNotificationOutbox(
+        Reservation reservation,
+        string eventType,
+        DateTime now)
+    {
+        db.NotificationOutboxes.Add(new NotificationOutbox
+        {
+            ReaderId = reservation.ReaderId,
+            ReservationId = reservation.ReservationId,
+            EventType = eventType,
+            DeduplicationKey =
+                $"reservation:{reservation.ReservationId}:{eventType}",
+            CreatedAt = now,
+            Attempts = 0
+        });
+    }
+
+    /// <summary>
     /// Đánh dấu các yêu cầu hết hạn và chuyển lượt cho độc giả tiếp theo.
     /// Phương thức này được gọi trong transaction của nghiệp vụ trả sách
     /// hoặc hủy đặt giữ.
@@ -42,6 +63,12 @@ public sealed class ReservationQueueService(LiMSDbContext db)
         foreach (var expired in expiredReservations)
         {
             expired.Status = RecordStatuses.Expired;
+
+            // Ghi sự kiện để worker tạo thông báo hết hạn.
+            AddNotificationOutbox(
+                expired,
+                "ReservationExpired",
+                now);
         }
 
         // Bước 2: Không cấp lượt mới nếu vẫn còn người được ưu tiên nhận sách.
@@ -80,6 +107,12 @@ public sealed class ReservationQueueService(LiMSDbContext db)
         // Bước 5: Chuyển yêu cầu tiếp theo sang trạng thái chờ nhận sách.
         next.Status = RecordStatuses.ReadyForPickup;
         next.ExpireAt = now.AddDays(pickupDays);
+
+        // Ghi sự kiện để worker thông báo sách đã sẵn sàng nhận.
+        AddNotificationOutbox(
+            next,
+            "ReservationReady",
+            now);
     }
 
     /// <summary>
@@ -101,6 +134,12 @@ public sealed class ReservationQueueService(LiMSDbContext db)
         foreach (var reservation in expiredPending)
         {
             reservation.Status = RecordStatuses.Expired;
+
+            // Lưu sự kiện hết hạn cùng lần SaveChanges bên dưới.
+            AddNotificationOutbox(
+                reservation,
+                "ReservationExpired",
+                now);
         }
 
         await db.SaveChangesAsync(cancellationToken);

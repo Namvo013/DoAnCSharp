@@ -105,6 +105,9 @@ builder.Services.AddScoped<IDatabaseMaintenanceService, DatabaseMaintenanceServi
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddScoped<IReservationQueueService, ReservationQueueService>();
 builder.Services.AddScoped<ILibraryQueryService, LibraryQueryService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<NotificationOutboxProcessorService>();
+builder.Services.AddScoped<LoanNotificationSchedulerService>();
 // Tự động xử lý các yêu cầu đặt giữ sách đã hết hạn.
 builder.Services.AddHostedService<XuLyHetHanDatGiuSachBackgroundService>();
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>

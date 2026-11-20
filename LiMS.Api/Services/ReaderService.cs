@@ -1,4 +1,4 @@
-using LiMS.Api.Contracts;
+﻿using LiMS.Api.Contracts;
 using LiMS.Api.Data;
 using LiMS.Api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -201,6 +201,18 @@ public sealed class ReaderService(
 
         var wasReady = reservation.Status == RecordStatuses.ReadyForPickup;
         reservation.Status = RecordStatuses.Cancelled;
+
+        // Ghi sự kiện Outbox cùng transaction hủy đặt giữ.
+        var now = DateTime.UtcNow;
+        db.NotificationOutboxes.Add(new NotificationOutbox
+        {
+            ReaderId = reservation.ReaderId,
+            ReservationId = reservation.ReservationId,
+            EventType = "ReservationCancelled",
+            DeduplicationKey = $"reservation:{reservation.ReservationId}:ReservationCancelled",
+            CreatedAt = now,
+            Attempts = 0
+        });
         if (wasReady)
             await reservationQueue.PromoteNextAsync(reservation.BookId, DateTime.UtcNow, cancellationToken);
         AddAudit(accountId, "CancelReservation", "RESERVATION", (int)reservationId, reservation.Book.Title);

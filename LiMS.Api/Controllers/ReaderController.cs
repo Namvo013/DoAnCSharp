@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using LiMS.Api.Contracts;
 using LiMS.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +10,9 @@ namespace LiMS.Api.Controllers;
 [ApiController]
 [Authorize(Roles = "Borrower")]
 [Route("api/library")]
-public sealed class ReaderController(IReaderService readerService) : ControllerBase
+public sealed class ReaderController(
+    IReaderService readerService,
+    INotificationService notificationService) : ControllerBase
 {
     [HttpPut("profile")]
     [EndpointSummary("Cập nhật thông tin liên hệ của độc giả hiện tại")]
@@ -94,6 +96,65 @@ public sealed class ReaderController(IReaderService readerService) : ControllerB
     [ProducesResponseType<LoanResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<LoanResponse>> Renew(long id, CancellationToken cancellationToken) =>
         Ok(await readerService.RenewAsync(GetAccountId(), id, cancellationToken));
+
+
+    // =========================================================
+    // NOTIFICATION API
+    // Quản lý thông báo của độc giả đang đăng nhập.
+    // =========================================================
+
+    [HttpGet("notifications")]
+    [EndpointSummary("Lấy danh sách thông báo của độc giả hiện tại")]
+    [ProducesResponseType<IReadOnlyList<ReaderNotificationResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ReaderNotificationResponse>>>
+        GetNotifications(CancellationToken cancellationToken)
+    {
+        var notifications = await notificationService.GetNotificationsAsync(
+            GetAccountId(),
+            cancellationToken);
+
+        return Ok(notifications);
+    }
+
+    [HttpGet("notifications/unread-count")]
+    [EndpointSummary("Đếm số thông báo chưa đọc")]
+    [ProducesResponseType<int>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<int>> GetUnreadNotificationCount(
+        CancellationToken cancellationToken)
+    {
+        var count = await notificationService.GetUnreadCountAsync(
+            GetAccountId(),
+            cancellationToken);
+
+        return Ok(count);
+    }
+
+    [HttpPatch("notifications/{id:long}/read")]
+    [EndpointSummary("Đánh dấu một thông báo là đã đọc")]
+    public async Task<IActionResult> MarkNotificationAsRead(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var success = await notificationService.MarkAsReadAsync(
+            GetAccountId(),
+            id,
+            cancellationToken);
+
+        return success ? NoContent() : NotFound();
+    }
+
+    [HttpPatch("notifications/read-all")]
+    [EndpointSummary("Đánh dấu tất cả thông báo là đã đọc")]
+    [ProducesResponseType<int>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<int>> MarkAllNotificationsAsRead(
+        CancellationToken cancellationToken)
+    {
+        var count = await notificationService.MarkAllAsReadAsync(
+            GetAccountId(),
+            cancellationToken);
+
+        return Ok(count);
+    }
 
     private int GetAccountId()
     {

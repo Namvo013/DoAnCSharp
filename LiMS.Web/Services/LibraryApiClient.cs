@@ -65,17 +65,63 @@ public sealed class LibraryApiClient(
             ?? throw new InvalidDataException("API phiếu đặt giữ trả về dữ liệu rỗng.");
     }
 
+    // Lấy danh sách thông báo của tài khoản đang đăng nhập.
     public async Task<IReadOnlyList<ApiNotification>> GetNotificationsAsync(
-        string studentCode,
         CancellationToken cancellationToken)
     {
         using var message = CreateRequest(
             HttpMethod.Get,
-            $"api/library/notifications/{Uri.EscapeDataString(studentCode)}");
+            "api/library/notifications");
+
         using var response = await _client.SendAsync(message, cancellationToken);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<ApiNotification>>(cancellationToken: cancellationToken)
+
+        return await response.Content.ReadFromJsonAsync<List<ApiNotification>>(
+            cancellationToken: cancellationToken)
             ?? throw new InvalidDataException("API thông báo trả về dữ liệu rỗng.");
+    }
+
+    // Lấy số lượng thông báo chưa đọc.
+    public async Task<int> GetUnreadNotificationCountAsync(
+        CancellationToken cancellationToken)
+    {
+        using var message = CreateRequest(
+            HttpMethod.Get,
+            "api/library/notifications/unread-count");
+
+        using var response = await _client.SendAsync(message, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<int>(
+            cancellationToken: cancellationToken);
+    }
+
+    // Đánh dấu một thông báo là đã đọc.
+    public async Task MarkNotificationAsReadAsync(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        using var message = CreateRequest(
+            HttpMethod.Patch,
+            $"api/library/notifications/{id}/read");
+
+        using var response = await _client.SendAsync(message, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    // Đánh dấu tất cả thông báo là đã đọc.
+    public async Task<int> MarkAllNotificationsAsReadAsync(
+        CancellationToken cancellationToken)
+    {
+        using var message = CreateRequest(
+            HttpMethod.Patch,
+            "api/library/notifications/read-all");
+
+        using var response = await _client.SendAsync(message, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<int>(
+            cancellationToken: cancellationToken);
     }
 
     public async Task<CreatedReservation> CreateReservationAsync(

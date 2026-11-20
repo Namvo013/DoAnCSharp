@@ -405,6 +405,55 @@ namespace LiMS.Api.Data.Migrations
                     b.ToTable("LOAN", (string)null);
                 });
 
+            modelBuilder.Entity("LiMS.Api.Models.NotificationOutbox", b =>
+                {
+                    b.Property<long>("OutboxId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("OutboxId"));
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReaderId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("ReservationId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("OutboxId");
+
+                    b.HasIndex("DeduplicationKey")
+                        .IsUnique();
+
+                    b.HasIndex("ReaderId");
+
+                    b.HasIndex("ProcessedAt", "CreatedAt");
+
+                    b.ToTable("NOTIFICATION_OUTBOX", (string)null);
+                });
+
             modelBuilder.Entity("LiMS.Api.Models.PurchaseProposal", b =>
                 {
                     b.Property<int>("ProposalId")
@@ -497,6 +546,65 @@ namespace LiMS.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("READER", (string)null);
+                });
+
+            modelBuilder.Entity("LiMS.Api.Models.ReaderNotification", b =>
+                {
+                    b.Property<long>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("NotificationId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReaderId")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("RelatedEntityId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RelatedEntityType")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("NotificationId");
+
+                    b.HasIndex("DeduplicationKey")
+                        .IsUnique();
+
+                    b.HasIndex("ReaderId", "CreatedAt");
+
+                    b.HasIndex("ReaderId", "IsRead");
+
+                    b.ToTable("READER_NOTIFICATION", (string)null);
                 });
 
             modelBuilder.Entity("LiMS.Api.Models.Reservation", b =>
@@ -677,6 +785,17 @@ namespace LiMS.Api.Data.Migrations
                     b.Navigation("Reservation");
                 });
 
+            modelBuilder.Entity("LiMS.Api.Models.NotificationOutbox", b =>
+                {
+                    b.HasOne("LiMS.Api.Models.Reader", "Reader")
+                        .WithMany("NotificationOutboxes")
+                        .HasForeignKey("ReaderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Reader");
+                });
+
             modelBuilder.Entity("LiMS.Api.Models.PurchaseProposal", b =>
                 {
                     b.HasOne("LiMS.Api.Models.Reader", "Reader")
@@ -704,6 +823,17 @@ namespace LiMS.Api.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("LiMS.Api.Models.ReaderNotification", b =>
+                {
+                    b.HasOne("LiMS.Api.Models.Reader", "Reader")
+                        .WithMany("Notifications")
+                        .HasForeignKey("ReaderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Reader");
                 });
 
             modelBuilder.Entity("LiMS.Api.Models.Reservation", b =>
@@ -772,6 +902,10 @@ namespace LiMS.Api.Data.Migrations
                     b.Navigation("EmailLogs");
 
                     b.Navigation("Loans");
+
+                    b.Navigation("NotificationOutboxes");
+
+                    b.Navigation("Notifications");
 
                     b.Navigation("PurchaseProposals");
 

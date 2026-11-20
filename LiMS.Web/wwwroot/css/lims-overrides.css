@@ -253,4 +253,204 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+
+  /* Reader notification system */
+.notification-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.notification-list article.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--border);
+    transition: background .18s ease;
+}
+
+.notification-list article.notification-item:last-child {
+    border-bottom: 0;
+}
+
+.notification-item.is-unread {
+    background: #f3faf5;
+}
+
+.notification-item.is-read {
+    background: var(--surface);
+}
+
+.notification-dot {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-weight: 700;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.notification-heading strong {
+    color: var(--ink);
+    font-size: 14px;
+}
+
+.notification-content p {
+    margin: 8px 0;
+    color: var(--text);
+    line-height: 1.65;
+}
+
+.notification-content small {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--muted);
+}
+
+.notification-badge,
+.notification-read-label {
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.notification-badge {
+    color: #246b48;
+    background: #dceee2;
+}
+
+.notification-read-label {
+    color: #66736a;
+    background: #edf1ed;
+}
+
+.notification-content form {
+    margin-top: 8px;
+}
+
+}
+
+/* Reader notification system */
+.notification-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.notification-list article.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--border);
+    transition: background .18s ease;
+}
+
+.notification-list article.notification-item:last-child {
+    border-bottom: 0;
+}
+
+.notification-item.is-unread {
+    background: #f3faf5;
+}
+
+.notification-item.is-read {
+    background: var(--surface);
+}
+
+.notification-dot {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-weight: 700;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.notification-heading strong {
+    color: var(--ink);
+    font-size: 14px;
+}
+
+.notification-content p {
+    margin: 8px 0;
+    color: var(--text);
+    line-height: 1.65;
+}
+
+.notification-content small {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--muted);
+}
+
+.notification-badge,
+.notification-read-label {
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.notification-badge {
+    color: #246b48;
+    background: #dceee2;
+}
+
+.notification-read-label {
+    color: #66736a;
+    background: #edf1ed;
+}
+
+.notification-content form {
+    margin-top: 8px;
+}
+
+@media (max-width: 600px) {
+    .notification-list article.notification-item {
+        gap: 11px;
+        padding: 16px;
+    }
+
+    .notification-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
 }

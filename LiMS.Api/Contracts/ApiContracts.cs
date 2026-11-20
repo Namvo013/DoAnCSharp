@@ -453,10 +453,14 @@ public sealed record ReaderReservationResponse(
     string Status,
     BookResponse? Book);
 
-/// <summary>Lịch sử thông báo của độc giả hiện tại.</summary>
+/// <summary>
+/// Thông tin một thông báo nội bộ dành cho độc giả.
+/// </summary>
 public sealed record ReaderNotificationResponse(
     long Id,
+    string Title,
     string Message,
+    string Type,
     DateTimeOffset CreatedAt,
     bool IsRead);
 
