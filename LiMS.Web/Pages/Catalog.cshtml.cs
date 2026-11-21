@@ -10,7 +10,7 @@ public class CatalogModel(LibraryApiClient libraryApi) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     [StringLength(100)]
-    public string Query { get; set; } = "";
+    public string? Query { get; set; } = "";
 
     [BindProperty(SupportsGet = true)]
     public string Category { get; set; } = "";
@@ -33,11 +33,12 @@ public class CatalogModel(LibraryApiClient libraryApi) : PageModel
         if (string.IsNullOrEmpty(HttpContext.Session.GetString("StudentCode")))
             return RedirectToPage("/Index");
 
-        if (Query.Length > 100)
+        if (Query is { Length: > 100 })
         {
             SearchError = "Từ khóa tìm kiếm không được vượt quá 100 ký tự.";
             Query = Query[..100];
         }
+        var searchTerm = Query?.Trim() ?? string.Empty;
 
         var books = await libraryApi.GetBooksAsync(cancellationToken);
         Categories = books.Select(book => book.Category)
@@ -48,12 +49,12 @@ public class CatalogModel(LibraryApiClient libraryApi) : PageModel
             .ToArray();
 
         IEnumerable<ApiBook> filtered = books;
-        if (!string.IsNullOrWhiteSpace(Query))
+        if (searchTerm.Length > 0)
         {
             filtered = filtered.Where(book =>
-                (book.Title?.Contains(Query, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (book.Author?.Contains(Query, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (book.Isbn?.Contains(Query, StringComparison.OrdinalIgnoreCase) ?? false));
+                (book.Title?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (book.Author?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (book.Isbn?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
         if (!string.IsNullOrWhiteSpace(Category))

@@ -80,6 +80,7 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
                     loan.Copy.Book.PublishYear,
                     loan.Copy.Book.Copies.Count,
                     loan.Copy.Book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+                    loan.Copy.Book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
                     loan.Copy.Book.ShelfLocation,
                     loan.Copy.Book.Description,
                     loan.Copy.Book.CoverImageContentType == null
@@ -124,6 +125,7 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
                     item.Book.PublishYear,
                     item.Book.Copies.Count,
                     item.Book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+                    item.Book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
                     item.Book.ShelfLocation,
                     item.Book.Description,
                     item.Book.CoverImageContentType == null
@@ -141,20 +143,37 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             item.Book)).ToArray();
     }
 
-    public async Task<IReadOnlyList<ReaderNotificationResponse>> GetReaderNotificationsAsync(
+    public async Task<IReadOnlyList<ReaderNotificationResponse>>
+    GetReaderNotificationsAsync(
         int readerId,
         CancellationToken cancellationToken)
     {
-        var emails = await db.EmailLogs.AsNoTracking()
+        // Chỉ lấy thông báo thuộc về độc giả đang được truy vấn.
+        var notifications = await db.ReaderNotifications
+            .AsNoTracking()
             .Where(item => item.ReaderId == readerId)
-            .OrderByDescending(item => item.SentAt)
-            .Select(item => new { item.EmailId, item.EmailType, item.SentAt })
+            .OrderByDescending(item => item.CreatedAt)
+            .Select(item => new
+            {
+                item.NotificationId,
+                item.Title,
+                item.Message,
+                item.Type,
+                item.CreatedAt,
+                item.IsRead
+            })
             .ToListAsync(cancellationToken);
-        return emails.Select(item => new ReaderNotificationResponse(
-            item.EmailId,
-            item.EmailType,
-            ToUtcOffset(item.SentAt),
-            true)).ToArray();
+
+        // Chuyển entity sang DTO trả về cho API.
+        return notifications.Select(item =>
+            new ReaderNotificationResponse(
+                item.NotificationId,
+                item.Title,
+                item.Message,
+                item.Type,
+                ToUtcOffset(item.CreatedAt),
+                item.IsRead))
+            .ToArray();
     }
 
     private static System.Linq.Expressions.Expression<Func<Book, BookResponse>> MapBook() =>
@@ -168,6 +187,7 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             book.PublishYear,
             book.Copies.Count,
             book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+            book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
             book.ShelfLocation,
             book.Description,
             book.CoverImageContentType == null

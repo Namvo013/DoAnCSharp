@@ -28,7 +28,7 @@ public sealed class LibraryApiClientTests
     {
         var response = new[]
         {
-            new BookResponse(1, "Catalog title", "Writer", "123", "History", null, 2020, 2, 1, null, null, null)
+            new BookResponse(1, "Catalog title", "Writer", "123", "History", null, 2020, 2, 1, 1, null, null, null)
         };
         using var client = CreateClient((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
         {

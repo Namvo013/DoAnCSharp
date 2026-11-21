@@ -54,6 +54,7 @@ public sealed class AdminService(
                 book.PublishYear,
                 book.Copies.Count,
                 book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+                book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
                 book.ShelfLocation,
                 book.Description,
                 book.CoverImageContentType == null
@@ -75,6 +76,7 @@ public sealed class AdminService(
                 book.PublishYear,
                 book.Copies.Count,
                 book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+                book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
                 book.ShelfLocation,
                 book.Description,
                 book.CoverImageContentType == null

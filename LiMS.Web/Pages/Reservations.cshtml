@@ -4,47 +4,87 @@
     ViewData["Title"] = "Sách đã đặt giữ";
 }
 
-<div class="page-head"><div><span class="eyebrow">ĐẶT GIỮ</span><h1>Sách đã đặt giữ</h1></div></div>
-@if (Model.SuccessMessage is not null)
+@if (Model.ResultType is "created" or "cancelled")
 {
-    <div class="form-message success" role="status">@Model.SuccessMessage</div>
+    var cancelled = Model.ResultType == "cancelled";
+    <div class="success-page">
+        <section class="success-card">
+            <div class="success-icon" aria-hidden="true">✓</div>
+            <span class="eyebrow">ĐẶT GIỮ SÁCH</span>
+            <h1>@(cancelled ? "Hủy đặt giữ thành công" : "Đặt giữ thành công")</h1>
+            <p>
+                @(cancelled
+                    ? "Phiếu đặt giữ của bạn đã được hủy khỏi hệ thống."
+                    : "Tài liệu đã được đặt giữ. Thư viện sẽ thông báo khi tài liệu sẵn sàng.")
+            </p>
+            <div class="success-details">
+                <div><small>Tài liệu</small><strong>@Model.ResultBookTitle</strong></div>
+                <div><small>Mã phiếu</small><strong>@Model.ResultId</strong></div>
+                <div>
+                    <small>Trạng thái</small>
+                    <span class="status @(cancelled ? "cancelled" : "amber")">
+                        @Model.GetStatusText(Model.ResultStatus ?? "")
+                    </span>
+                </div>
+            </div>
+            <div class="success-actions">
+                @if (cancelled)
+                {
+                    <a class="secondary" asp-page="/Reservations">Quay lại sách đặt giữ</a>
+                    <a class="primary" asp-page="/Catalog">Tra cứu tài liệu khác</a>
+                }
+                else
+                {
+                    <a class="primary" asp-page="/Reservations">Xem sách đã đặt giữ</a>
+                    <a class="secondary" asp-page="/Catalog">Tra cứu tài liệu khác</a>
+                }
+            </div>
+        </section>
+    </div>
 }
-@if (Model.ErrorMessage is not null)
+else
 {
-    <div class="form-message error" role="alert">@Model.ErrorMessage</div>
+    <div class="page-head"><div><span class="eyebrow">ĐẶT GIỮ</span><h1>Sách đã đặt giữ</h1></div></div>
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="form-message error" role="alert">@Model.ErrorMessage</div>
+    }
+    <section class="reservation-list">
+        @if (Model.Reservations.Count == 0)
+        {
+            <div class="empty-state">
+                <strong>Chưa có sách đặt giữ</strong>
+                <p>Tra cứu tài liệu để đặt giữ sách đang được mượn.</p>
+                <a class="primary" asp-page="/Catalog">Tra cứu tài liệu</a>
+            </div>
+        }
+        @foreach (var reservation in Model.Reservations)
+        {
+            var canCancel = reservation.Status is "Pending" or "ReadyForPickup" or "Đang chờ" or "Sẵn sàng nhận";
+            var isExpired = reservation.ExpiryDate <= DateTimeOffset.UtcNow
+                && reservation.Status is "Pending" or "ReadyForPickup";
+            var statusClass = isExpired || reservation.Status is "Expired" or "Cancelled"
+                ? "red"
+                : reservation.Status == "ReadyForPickup" ? "green" : "amber";
+            <article>
+                <div class="reservation-code">◷</div>
+                <div><strong>@reservation.Book?.Title</strong><span>Mã phiếu: @reservation.Id</span></div>
+                <div><small>Ngày đặt</small><strong>@VietnamTime.Convert(reservation.CreatedDate).ToString("dd/MM/yyyy")</strong></div>
+                <div><small>Hết hiệu lực</small><strong>@VietnamTime.Convert(reservation.ExpiryDate).ToString("dd/MM/yyyy")</strong></div>
+                <span class="status @statusClass">@(isExpired ? "Hết hiệu lực" : Model.GetStatusText(reservation.Status))</span>
+                @if (canCancel && !isExpired)
+                {
+                    <form method="post" asp-page-handler="Cancel" asp-route-reservationId="@reservation.Id"
+                          data-confirm="Bạn có chắc muốn hủy phiếu đặt giữ này?"
+                          onsubmit="return window.libraryUiReady || confirm(this.dataset.confirm);">
+                        <button class="danger-light compact" type="submit">Hủy đặt giữ</button>
+                    </form>
+                }
+                else
+                {
+                    <span class="small-muted">Không thể hủy</span>
+                }
+            </article>
+        }
+    </section>
 }
-<section class="reservation-list">
-    @if (Model.Reservations.Count == 0)
-    {
-        <div class="empty-state">
-            <strong>Chưa có sách đặt giữ</strong>
-            <p>Tra cứu tài liệu để đặt giữ sách đang được mượn.</p>
-            <a class="primary" asp-page="/Catalog">Tra cứu tài liệu</a>
-        </div>
-    }
-    @foreach (var reservation in Model.Reservations)
-    {
-        var canCancel = reservation.Status is "Pending" or "ReadyForPickup" or "Đang chờ" or "Sẵn sàng nhận";
-        var isExpired = reservation.ExpiryDate <= DateTimeOffset.UtcNow
-            && reservation.Status is "Pending" or "ReadyForPickup";
-        <article>
-            <div class="reservation-code">◷</div>
-            <div><strong>@reservation.Book?.Title</strong><span>Mã phiếu: @reservation.Id</span></div>
-            <div><small>Ngày đặt</small><strong>@VietnamTime.Convert(reservation.CreatedDate).ToString("dd/MM/yyyy")</strong></div>
-            <div><small>Hết hiệu lực</small><strong>@VietnamTime.Convert(reservation.ExpiryDate).ToString("dd/MM/yyyy")</strong></div>
-            <span class="status @(isExpired ? "red" : "amber")">@(isExpired ? "Hết hiệu lực" : reservation.Status)</span>
-            @if (canCancel && !isExpired)
-            {
-                <form method="post" asp-page-handler="Cancel" asp-route-reservationId="@reservation.Id"
-                      data-confirm="Bạn có chắc muốn hủy phiếu đặt giữ này?"
-                      onsubmit="return window.libraryUiReady || confirm(this.dataset.confirm);">
-                    <button class="danger-light compact" type="submit">Hủy đặt giữ</button>
-                </form>
-            }
-            else
-            {
-                <span class="small-muted">Không thể hủy</span>
-            }
-        </article>
-    }
-</section>

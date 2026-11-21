@@ -19,6 +19,13 @@ public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbC
     public DbSet<Fine> Fines => Set<Fine>();
     public DbSet<PurchaseProposal> PurchaseProposals => Set<PurchaseProposal>();
     public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
+    // Bảng thông báo nội bộ dành cho độc giả.
+    public DbSet<ReaderNotification> ReaderNotifications
+        => Set<ReaderNotification>();
+
+    // Bảng Outbox lưu sự kiện chờ xử lý thành thông báo.
+    public DbSet<NotificationOutbox> NotificationOutboxes
+        => Set<NotificationOutbox>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -194,5 +201,84 @@ public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbC
             entity.HasOne(x => x.Reservation).WithMany(x => x.EmailLogs)
                 .HasForeignKey(x => x.ReservationId).OnDelete(DeleteBehavior.NoAction);
         });
+
+        // ==========================================
+        // READER_NOTIFICATION: Thông báo nội bộ
+        // ==========================================
+        modelBuilder.Entity<ReaderNotification>(entity =>
+    {
+        entity.ToTable("READER_NOTIFICATION");
+
+        entity.HasKey(x => x.NotificationId);
+
+        entity.Property(x => x.Title)
+            .HasMaxLength(150)
+            .IsRequired();
+
+        entity.Property(x => x.Message)
+            .HasMaxLength(1000)
+            .IsRequired();
+
+        entity.Property(x => x.Type)
+            .HasMaxLength(40)
+            .IsRequired();
+
+        entity.Property(x => x.RelatedEntityType)
+            .HasMaxLength(30);
+
+        entity.Property(x => x.DeduplicationKey)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        // Mỗi khóa chống trùng chỉ được xuất hiện một lần.
+        entity.HasIndex(x => x.DeduplicationKey)
+            .IsUnique();
+
+        // Tối ưu truy vấn thông báo của từng độc giả.
+        entity.HasIndex(x => new { x.ReaderId, x.CreatedAt });
+
+        // Tối ưu truy vấn thông báo chưa đọc.
+        entity.HasIndex(x => new { x.ReaderId, x.IsRead });
+
+        entity.HasOne(x => x.Reader)
+            .WithMany(x => x.Notifications)
+            .HasForeignKey(x => x.ReaderId)
+            .OnDelete(DeleteBehavior.NoAction);
+    });
+
+        // ==========================================
+        // NOTIFICATION_OUTBOX: Hàng đợi sự kiện
+        // ==========================================
+        modelBuilder.Entity<NotificationOutbox>(entity =>
+        {
+            entity.ToTable("NOTIFICATION_OUTBOX");
+
+            entity.HasKey(x => x.OutboxId);
+
+            entity.Property(x => x.EventType)
+                .HasMaxLength(40)
+                .IsRequired();
+
+            entity.Property(x => x.DeduplicationKey)
+            .HasMaxLength(200)
+            .IsRequired();
+
+            entity.Property(x => x.LastError)
+            .HasMaxLength(2000);
+
+            // Không cho ghi nhận cùng một sự kiện hai lần.
+            entity.HasIndex(x => x.DeduplicationKey)
+            .IsUnique();
+
+            // Hỗ trợ tìm các sự kiện chưa xử lý.
+            entity.HasIndex(x => new { x.ProcessedAt, x.CreatedAt });
+
+            entity.HasOne(x => x.Reader)
+                .WithMany(x => x.NotificationOutboxes)
+                .HasForeignKey(x => x.ReaderId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
     }
+
 }

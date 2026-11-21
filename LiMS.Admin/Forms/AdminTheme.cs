@@ -2,17 +2,17 @@ namespace LiMS.Admin.Forms;
 
 internal static class AdminTheme
 {
-    public static readonly Color Canvas = Color.FromArgb(243, 247, 252);
+    public static readonly Color Canvas = Color.FromArgb(244, 247, 244);
     public static readonly Color Surface = Color.White;
-    public static readonly Color SurfaceRaised = Color.FromArgb(239, 244, 250);
-    public static readonly Color Sidebar = Color.FromArgb(17, 34, 57);
-    public static readonly Color SidebarRaised = Color.FromArgb(31, 52, 79);
-    public static readonly Color SidebarText = Color.FromArgb(205, 218, 234);
-    public static readonly Color Border = Color.FromArgb(216, 226, 238);
-    public static readonly Color Accent = Color.FromArgb(37, 99, 235);
-    public static readonly Color AccentHover = Color.FromArgb(29, 78, 216);
-    public static readonly Color Text = Color.FromArgb(23, 38, 60);
-    public static readonly Color Muted = Color.FromArgb(91, 109, 132);
+    public static readonly Color SurfaceRaised = Color.FromArgb(239, 245, 239);
+    public static readonly Color Sidebar = Color.FromArgb(22, 43, 32);
+    public static readonly Color SidebarRaised = Color.FromArgb(39, 67, 49);
+    public static readonly Color SidebarText = Color.FromArgb(203, 218, 207);
+    public static readonly Color Border = Color.FromArgb(220, 230, 221);
+    public static readonly Color Accent = Color.FromArgb(43, 119, 75);
+    public static readonly Color AccentHover = Color.FromArgb(34, 101, 63);
+    public static readonly Color Text = Color.FromArgb(30, 53, 42);
+    public static readonly Color Muted = Color.FromArgb(106, 121, 111);
     public static readonly Color Warning = Color.FromArgb(146, 83, 0);
     public static readonly Color Danger = Color.FromArgb(180, 35, 24);
     public static readonly Color DangerSurface = Color.FromArgb(254, 226, 226);
@@ -67,10 +67,10 @@ internal static class AdminTheme
         grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Accent;
         grid.DefaultCellStyle.BackColor = Surface;
         grid.DefaultCellStyle.ForeColor = Text;
-        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
+        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 240, 227);
         grid.DefaultCellStyle.SelectionForeColor = Text;
         grid.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
-        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(246, 249, 253);
+        grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 251, 248);
         grid.RowTemplate.Height = 40;
     }
 }

@@ -1,20 +1,83 @@
 @page
 @model NotificationsModel
+
 @{
     ViewData["Title"] = "Thông báo";
 }
 
-<div class="page-head"><div><span class="eyebrow">CẬP NHẬT</span><h1>Thông báo</h1></div></div>
+<div class="page-head">
+    <div>
+        <span class="eyebrow">CẬP NHẬT</span>
+        <h1>Thông báo</h1>
+        <p>Bạn có @Model.UnreadCount thông báo chưa đọc.</p>
+    </div>
+
+    @if (Model.UnreadCount > 0)
+    {
+        <form method="post" asp-page-handler="MarkAllAsRead">
+            <button type="submit" class="btn btn-primary">
+                Đánh dấu tất cả đã đọc
+            </button>
+        </form>
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success">
+        @Model.StatusMessage
+    </div>
+}
+
 <section class="notification-list">
     @if (Model.Notifications.Count == 0)
     {
-        <div class="empty-state"><strong>Chưa có thông báo</strong><p>Thông báo mới sẽ hiển thị tại đây.</p></div>
+        <div class="empty-state">
+            <strong>Chưa có thông báo</strong>
+            <p>Thông báo mới sẽ hiển thị tại đây.</p>
+        </div>
     }
-    @foreach (var notification in Model.Notifications)
+    else
     {
-        <article>
-            <div class="notification-dot reminder">!</div>
-            <div><p>@notification.Message</p><small>@notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small></div>
-        </article>
+        @foreach (var notification in Model.Notifications)
+        {
+            <article class="notification-item @(notification.IsRead ? "is-read" : "is-unread")">
+                <div class="notification-dot reminder">
+                    !
+                </div>
+
+                <div class="notification-content">
+                    <div class="notification-heading">
+                        <strong>@notification.Title</strong>
+
+                        @if (!notification.IsRead)
+                        {
+                            <span class="notification-badge">Chưa đọc</span>
+                        }
+                        else
+                        {
+                            <span class="notification-read-label">Đã đọc</span>
+                        }
+                    </div>
+
+                    <p>@notification.Message</p>
+
+                    <small>
+                        @notification.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                    </small>
+
+                    @if (!notification.IsRead)
+                    {
+                        <form method="post"
+                              asp-page-handler="MarkAsRead"
+                              asp-route-id="@notification.Id">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                Đánh dấu đã đọc
+                            </button>
+                        </form>
+                    }
+                </div>
+            </article>
+        }
     }
 </section>

@@ -45,7 +45,7 @@
                     <strong>@(book.AvailableCopies > 0 ? "Sẵn sàng tại thư viện" : "Hiện đang hết sách")</strong>
                     <small>@book.AvailableCopies/@book.TotalCopies bản có thể mượn · Vị trí: @(book.ShelfLocation ?? "Chưa cập nhật")</small>
                 </div>
-                @if (book.AvailableCopies == 0 && book.TotalCopies > 0)
+                @if (book.AvailableCopies == 0 && book.OnLoanCopies > 0)
                 {
                     <form method="post" asp-page-handler="Reserve" asp-route-id="@book.Id">
                         <button class="primary" type="submit">Đặt giữ</button>
@@ -57,7 +57,7 @@
                 }
                 else
                 {
-                    <span class="small-muted">Không có bản sao khả dụng để đặt giữ.</span>
+                    <span class="small-muted">Hiện không có bản sao đang được mượn để đặt giữ.</span>
                 }
             </div>
         </div>
