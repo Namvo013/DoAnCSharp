@@ -448,7 +448,7 @@ public sealed class AdminService(
 
     public async Task<IReadOnlyList<LoanResponse>> GetLoansAsync(string? status, CancellationToken cancellationToken)
     {
-        var query = LoanQuery();
+        var query = LoanQuery().AsNoTracking();
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(loan => loan.Status == status);
 
@@ -460,7 +460,8 @@ public sealed class AdminService(
 
     public async Task<LoanResponse?> GetLoanAsync(long loanId, CancellationToken cancellationToken)
     {
-        var loan = await LoanQuery().SingleOrDefaultAsync(item => item.LoanId == loanId, cancellationToken);
+        var loan = await LoanQuery().AsNoTracking()
+            .SingleOrDefaultAsync(item => item.LoanId == loanId, cancellationToken);
         return loan is null ? null : MapLoan(loan);
     }
 
@@ -653,7 +654,7 @@ public sealed class AdminService(
 
     public async Task<IReadOnlyList<FineResponse>> GetFinesAsync(string? status, CancellationToken cancellationToken)
     {
-        var query = FineQuery();
+        var query = FineQuery().AsNoTracking();
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(fine => fine.Status == status);
         var fines = await query.OrderByDescending(fine => fine.FineId)
@@ -691,7 +692,7 @@ public sealed class AdminService(
         string? status,
         CancellationToken cancellationToken)
     {
-        var query = ProposalQuery();
+        var query = ProposalQuery().AsNoTracking();
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(proposal => proposal.Status == status);
         var proposals = await query.OrderByDescending(proposal => proposal.CreatedAt)
