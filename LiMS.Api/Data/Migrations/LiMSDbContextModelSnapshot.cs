@@ -402,7 +402,17 @@ namespace LiMS.Api.Data.Migrations
 
                     b.HasIndex("ReaderId", "BorrowDate");
 
-                    b.ToTable("LOAN", (string)null);
+                    b.HasIndex("ReaderId", "ReturnDate", "DueDate")
+                        .HasDatabaseName("IX_LOAN_ReaderId_ReturnDate_DueDate");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReaderId", "ReturnDate", "DueDate"), new[] { "BorrowDate", "CopyId", "Status", "RenewCount" });
+
+                    b.ToTable("LOAN", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LOAN_DueDateAfterBorrowDate", "[DueDate] >= CONVERT(date, [BorrowDate])");
+
+                            t.HasCheckConstraint("CK_LOAN_RenewCount", "[RenewCount] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("LiMS.Api.Models.NotificationOutbox", b =>
@@ -545,7 +555,12 @@ namespace LiMS.Api.Data.Migrations
                     b.HasIndex("CardNo")
                         .IsUnique();
 
-                    b.ToTable("READER", (string)null);
+                    b.ToTable("READER", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_READER_BorrowLimit", "[BorrowLimit] >= 0");
+
+                            t.HasCheckConstraint("CK_READER_CardDateRange", "[CardExpiryDate] >= [CardIssueDate]");
+                        });
                 });
 
             modelBuilder.Entity("LiMS.Api.Models.ReaderNotification", b =>
@@ -604,6 +619,11 @@ namespace LiMS.Api.Data.Migrations
 
                     b.HasIndex("ReaderId", "IsRead");
 
+                    b.HasIndex("ReaderId", "IsRead", "CreatedAt")
+                        .HasDatabaseName("IX_READER_NOTIFICATION_ReaderId_IsRead_CreatedAt");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ReaderId", "IsRead", "CreatedAt"), new[] { "NotificationId", "Title", "Type" });
+
                     b.ToTable("READER_NOTIFICATION", (string)null);
                 });
 
@@ -634,11 +654,17 @@ namespace LiMS.Api.Data.Migrations
 
                     b.HasKey("ReservationId");
 
-                    b.HasIndex("BookId");
-
                     b.HasIndex("ReaderId", "BookId", "Status");
 
-                    b.ToTable("RESERVATION", (string)null);
+                    b.HasIndex("BookId", "Status", "ExpireAt", "CreatedAt")
+                        .HasDatabaseName("IX_RESERVATION_BookId_Status_ExpireAt_CreatedAt");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("BookId", "Status", "ExpireAt", "CreatedAt"), new[] { "ReaderId" });
+
+                    b.ToTable("RESERVATION", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RESERVATION_ExpiryAfterCreated", "[ExpireAt] >= [CreatedAt]");
+                        });
                 });
 
             modelBuilder.Entity("LiMS.Api.Models.SystemConfig", b =>

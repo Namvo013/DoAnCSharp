@@ -46,7 +46,11 @@ public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbC
 
         modelBuilder.Entity<Reader>(entity =>
         {
-            entity.ToTable("READER");
+            entity.ToTable("READER", table =>
+            {
+                table.HasCheckConstraint("CK_READER_CardDateRange", "[CardExpiryDate] >= [CardIssueDate]");
+                table.HasCheckConstraint("CK_READER_BorrowLimit", "[BorrowLimit] >= 0");
+            });
             entity.HasKey(x => x.ReaderId);
             entity.Property(x => x.CardNo).HasMaxLength(20).IsRequired();
             entity.Property(x => x.CardStatus).HasMaxLength(20).IsRequired();
@@ -129,10 +133,14 @@ public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbC
 
         modelBuilder.Entity<Reservation>(entity =>
         {
-            entity.ToTable("RESERVATION");
+            entity.ToTable("RESERVATION", table =>
+                table.HasCheckConstraint("CK_RESERVATION_ExpiryAfterCreated", "[ExpireAt] >= [CreatedAt]"));
             entity.HasKey(x => x.ReservationId);
             entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
             entity.HasIndex(x => new { x.ReaderId, x.BookId, x.Status });
+            entity.HasIndex(x => new { x.BookId, x.Status, x.ExpireAt, x.CreatedAt })
+                .HasDatabaseName("IX_RESERVATION_BookId_Status_ExpireAt_CreatedAt")
+                .IncludeProperties(x => x.ReaderId);
             entity.HasOne(x => x.Reader).WithMany(x => x.Reservations)
                 .HasForeignKey(x => x.ReaderId).OnDelete(DeleteBehavior.NoAction);
             entity.HasOne(x => x.Book).WithMany(x => x.Reservations)
@@ -141,11 +149,18 @@ public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbC
 
         modelBuilder.Entity<Loan>(entity =>
         {
-            entity.ToTable("LOAN");
+            entity.ToTable("LOAN", table =>
+            {
+                table.HasCheckConstraint("CK_LOAN_DueDateAfterBorrowDate", "[DueDate] >= CONVERT(date, [BorrowDate])");
+                table.HasCheckConstraint("CK_LOAN_RenewCount", "[RenewCount] >= 0");
+            });
             entity.HasKey(x => x.LoanId);
             entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
             entity.HasIndex(x => x.CopyId).IsUnique().HasFilter("[ReturnDate] IS NULL");
             entity.HasIndex(x => new { x.ReaderId, x.BorrowDate });
+            entity.HasIndex(x => new { x.ReaderId, x.ReturnDate, x.DueDate })
+                .HasDatabaseName("IX_LOAN_ReaderId_ReturnDate_DueDate")
+                .IncludeProperties(x => new { x.BorrowDate, x.CopyId, x.Status, x.RenewCount });
             entity.HasIndex(x => x.ReservationId).IsUnique()
                 .HasFilter("[ReservationId] IS NOT NULL");
             entity.HasOne(x => x.Reader).WithMany(x => x.Loans)
@@ -239,6 +254,9 @@ public sealed class LiMSDbContext(DbContextOptions<LiMSDbContext> options) : DbC
 
         // Tối ưu truy vấn thông báo chưa đọc.
         entity.HasIndex(x => new { x.ReaderId, x.IsRead });
+        entity.HasIndex(x => new { x.ReaderId, x.IsRead, x.CreatedAt })
+            .HasDatabaseName("IX_READER_NOTIFICATION_ReaderId_IsRead_CreatedAt")
+            .IncludeProperties(x => new { x.NotificationId, x.Title, x.Type });
 
         entity.HasOne(x => x.Reader)
             .WithMany(x => x.Notifications)
