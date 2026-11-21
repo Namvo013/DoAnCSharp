@@ -86,6 +86,56 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_rehashes_legacy_password_hash_when_requested_by_hasher()
+    {
+        await using var db = CreateDatabase();
+        var account = new Account
+        {
+            Username = "legacy-reader",
+            PasswordHash = "legacy-hash",
+            Email = "legacy@example.test",
+            FullName = "Legacy Reader",
+            Role = AccountRoles.Borrower
+        };
+        db.Accounts.Add(account);
+        await db.SaveChangesAsync();
+        var hasher = new Mock<IPasswordHasher<Account>>();
+        hasher.Setup(item => item.VerifyHashedPassword(account, "legacy-hash", "legacy-password"))
+            .Returns(PasswordVerificationResult.SuccessRehashNeeded);
+        hasher.Setup(item => item.HashPassword(account, "legacy-password"))
+            .Returns("updated-hash");
+        var tokenService = new Mock<ITokenService>();
+        tokenService.Setup(item => item.CreateToken(It.IsAny<Account>()))
+            .Returns(("token", DateTimeOffset.UtcNow.AddMinutes(20)));
+
+        var result = await new AuthService(db, hasher.Object, tokenService.Object).LoginAsync(
+            new LoginRequest { Username = "legacy-reader", Password = "legacy-password" },
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("updated-hash", (await db.Accounts.SingleAsync()).PasswordHash);
+        hasher.Verify(item => item.HashPassword(account, "legacy-password"), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginAsync_returns_null_for_unknown_username()
+    {
+        await using var db = CreateDatabase();
+        var tokenService = new Mock<ITokenService>(MockBehavior.Strict);
+
+        var result = await new AuthService(
+                db,
+                new PasswordHasher<Account>(),
+                tokenService.Object)
+            .LoginAsync(
+                new LoginRequest { Username = "missing", Password = "password" },
+                CancellationToken.None);
+
+        Assert.Null(result);
+        tokenService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task ChangePasswordAsync_updates_hash_and_accepts_new_password()
     {
         await using var db = CreateDatabase();
