@@ -3,6 +3,7 @@
 **/obj/
 **/out/
 **/publish/
+**/.build-test/
 
 # Visual Studio and user-specific files
 .vs/
