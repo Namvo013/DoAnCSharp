@@ -58,11 +58,12 @@ internal static class AdminTheme
         grid.GridColor = Border;
         grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
         grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
-        grid.ColumnHeadersHeight = 42;
-        grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
         grid.ColumnHeadersDefaultCellStyle.BackColor = SurfaceRaised;
         grid.ColumnHeadersDefaultCellStyle.ForeColor = Accent;
         grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+        grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
+        grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(10, 7, 6, 7);
         grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = SurfaceRaised;
         grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Accent;
         grid.DefaultCellStyle.BackColor = Surface;
