@@ -84,6 +84,25 @@ public sealed class LibraryApiClientTests
     }
 
     [Fact]
+    public async Task CreateReservationAsync_includes_API_trace_id_in_the_error_notice()
+    {
+        const string traceId = "request-trace-123";
+        using var client = CreateClient((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = JsonContent.Create(ApiResponse<object?>.Failure(
+                "INTERNAL_SERVER_ERROR",
+                "Đã xảy ra lỗi hệ thống.") with { TraceId = traceId })
+        }));
+        var service = CreateService(client);
+
+        var error = await Assert.ThrowsAsync<LibraryApiClient.LibraryApiException>(
+            () => service.CreateReservationAsync(3, CancellationToken.None));
+
+        Assert.Equal(traceId, error.TraceId);
+        Assert.Contains(traceId, error.Message);
+    }
+
+    [Fact]
     public async Task GetUserAsync_returns_null_when_account_is_not_found()
     {
         using var client = CreateClient((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)));

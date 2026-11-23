@@ -254,14 +254,26 @@ public sealed class LibraryApiClient(
 
     private static async Task<LibraryApiException> CreateApiExceptionAsync(
         HttpResponseMessage response,
-        CancellationToken cancellationToken) =>
-        new(response.StatusCode, await ReadProblemAsync(response, cancellationToken));
-
-    public sealed class LibraryApiException(HttpStatusCode statusCode, string message)
-        : Exception(message)
+        CancellationToken cancellationToken)
     {
-        public HttpStatusCode StatusCode { get; } = statusCode;
+        var problem = await response.Content.ReadFromJsonAsync<ApiProblem>(
+            cancellationToken: cancellationToken);
+        var message = problem?.Message
+            ?? problem?.Detail
+            ?? problem?.Title
+            ?? $"Yêu cầu thất bại với mã HTTP {(int)response.StatusCode}.";
+        return new(response.StatusCode, message, problem?.TraceId);
     }
 
-    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail);
+    public sealed class LibraryApiException(
+        HttpStatusCode statusCode,
+        string message,
+        string? traceId)
+        : Exception(traceId is null ? message : $"{message} (Mã tra cứu: {traceId})")
+    {
+        public HttpStatusCode StatusCode { get; } = statusCode;
+        public string? TraceId { get; } = traceId;
+    }
+
+    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail, string? TraceId);
 }
