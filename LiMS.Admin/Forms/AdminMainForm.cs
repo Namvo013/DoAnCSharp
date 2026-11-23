@@ -1420,6 +1420,102 @@ public sealed class AdminMainForm : Form
         await LoadSettingsAsync();
     }
 
+    private void ShowApiExceptionDialog(AdminApiClient.AdminApiException exception)
+    {
+        using var dialog = new Form
+        {
+            Text = "Không thể hoàn tất thao tác",
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            ShowInTaskbar = false,
+            ClientSize = new Size(520, exception.TraceId is null ? 145 : 205),
+            Font = Font
+        };
+
+        var message = exception.Message;
+        if (!string.IsNullOrWhiteSpace(exception.TraceId))
+        {
+            var traceLine = $"{Environment.NewLine}Mã tra cứu (TraceId): {exception.TraceId}";
+            message = message.Replace(traceLine, "");
+        }
+
+        var messageLabel = new Label
+        {
+            Text = message,
+            Location = new Point(18, 18),
+            Size = new Size(480, 48),
+            AutoEllipsis = true
+        };
+
+        dialog.Controls.Add(messageLabel);
+
+        var closeButton = new Button
+        {
+            Text = "Đóng",
+            DialogResult = DialogResult.OK,
+            Size = new Size(90, 32),
+            Location = new Point(408, dialog.ClientSize.Height - 48),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+        };
+
+        dialog.Controls.Add(closeButton);
+        dialog.AcceptButton = closeButton;
+        dialog.CancelButton = closeButton;
+
+        if (!string.IsNullOrWhiteSpace(exception.TraceId))
+        {
+            var traceLabel = new Label
+            {
+                Text = "MÃ TRA CỨU (TRACE ID)",
+                Location = new Point(18, 83),
+                Size = new Size(480, 22),
+                ForeColor = AdminTheme.Muted
+            };
+
+            var traceText = new TextBox
+            {
+                Text = exception.TraceId,
+                ReadOnly = true,
+                Location = new Point(18, 108),
+                Size = new Size(365, 28),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            var copyButton = new Button
+            {
+                Text = "Sao chép",
+                Location = new Point(393, 106),
+                Size = new Size(105, 32),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
+            };
+
+            copyButton.Click += (_, _) =>
+            {
+                try
+                {
+                    Clipboard.SetText(exception.TraceId);
+                    copyButton.Text = "Đã sao chép";
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show(
+                        dialog,
+                        "Không thể sao chép TraceId. Hãy thử lại.",
+                        "Lỗi sao chép",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            };
+
+            dialog.Controls.Add(traceLabel);
+            dialog.Controls.Add(traceText);
+            dialog.Controls.Add(copyButton);
+        }
+
+        dialog.ShowDialog(this);
+    }
     private async Task RunAsync(Func<Task> action)
     {
         try
@@ -1428,8 +1524,7 @@ public sealed class AdminMainForm : Form
         }
         catch (AdminApiClient.AdminApiException exception)
         {
-            MessageBox.Show(this, exception.Message, "Không thể hoàn tất thao tác",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            ShowApiExceptionDialog(exception);
         }
         catch (HttpRequestException exception)
         {
