@@ -52,6 +52,9 @@ public sealed class ApiExceptionHandlerTests
         using var document = await JsonDocument.ParseAsync(body);
         var message = document.RootElement.GetProperty("message").GetString();
         Assert.DoesNotContain("sensitive internal detail", message);
+        Assert.Equal(
+            context.TraceIdentifier,
+            document.RootElement.GetProperty("traceId").GetString());
     }
 
     [Fact]

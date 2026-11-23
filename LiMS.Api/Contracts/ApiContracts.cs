@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace LiMS.Api.Contracts;
 
@@ -10,6 +11,9 @@ public sealed record ApiResponse<T>(
     T? Data = default,
     IReadOnlyDictionary<string, string[]>? Errors = null)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TraceId { get; init; }
+
     public static ApiResponse<T> Failure(
         string code,
         string message,
