@@ -54,14 +54,12 @@ if (!string.IsNullOrWhiteSpace(legacyConnectionString))
 }
 
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"];
-var generatedDevelopmentKey = false;
+
 if (string.IsNullOrWhiteSpace(jwtSigningKey))
 {
-    if (!builder.Environment.IsDevelopment())
-        throw new InvalidOperationException("Configure Jwt:SigningKey outside Development.");
-
-    jwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-    generatedDevelopmentKey = true;
+    throw new InvalidOperationException(
+        "Missing configuration: Jwt:SigningKey. " +
+        "Configure it using User Secrets or an environment variable.");
 }
 
 var jwtOptions = new JwtOptions
@@ -71,9 +69,25 @@ var jwtOptions = new JwtOptions
     SigningKey = jwtSigningKey,
     AccessTokenMinutes = builder.Configuration.GetValue("Jwt:AccessTokenMinutes", 120)
 };
-if (Encoding.UTF8.GetByteCount(jwtOptions.SigningKey) < 32)
-    throw new InvalidOperationException("Jwt:SigningKey must contain at least 32 bytes.");
 
+if (Encoding.UTF8.GetByteCount(jwtOptions.SigningKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:SigningKey must contain at least 32 bytes.");
+}
+
+if (string.IsNullOrWhiteSpace(jwtOptions.Issuer) ||
+    string.IsNullOrWhiteSpace(jwtOptions.Audience))
+{
+    throw new InvalidOperationException(
+        "JWT Issuer and Audience must not be empty.");
+}
+
+if (jwtOptions.AccessTokenMinutes <= 0)
+{
+    throw new InvalidOperationException(
+        "Jwt:AccessTokenMinutes must be greater than zero.");
+}
 builder.Services.Configure<JwtOptions>(options =>
 {
     options.Issuer = jwtOptions.Issuer;
@@ -108,15 +122,13 @@ builder.Services.AddScoped<ILibraryQueryService, LibraryQueryService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<NotificationOutboxProcessorService>();
 builder.Services.AddScoped<LoanNotificationSchedulerService>();
-// Tự động xử lý các yêu cầu đặt giữ sách đã hết hạn.
+// Tá»± Ä‘á»™ng xá»­ lÃ½ cÃ¡c yÃªu cáº§u Ä‘áº·t giá»¯ sÃ¡ch Ä‘Ã£ háº¿t háº¡n.
 builder.Services.AddHostedService<XuLyHetHanDatGiuSachBackgroundService>();
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
     policy.WithOrigins("http://localhost:5500", "http://127.0.0.1:5500")
           .AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
-if (generatedDevelopmentKey)
-    app.Logger.LogWarning("No JWT signing key configured. A temporary development key was generated; existing tokens will expire when the API restarts.");
 
 app.UseExceptionHandler();
 app.UseStatusCodePages(statusCodeContext =>
@@ -124,18 +136,20 @@ app.UseStatusCodePages(statusCodeContext =>
     var response = statusCodeContext.HttpContext.Response;
     var (code, message) = response.StatusCode switch
     {
-        StatusCodes.Status401Unauthorized => ("UNAUTHORIZED", "Vui lòng đăng nhập để tiếp tục."),
-        StatusCodes.Status403Forbidden => ("FORBIDDEN", "Tài khoản không có quyền thực hiện thao tác này."),
-        StatusCodes.Status404NotFound => ("NOT_FOUND", "Không tìm thấy tài nguyên được yêu cầu."),
-        StatusCodes.Status405MethodNotAllowed => ("METHOD_NOT_ALLOWED", "Phương thức yêu cầu không được hỗ trợ."),
-        _ => ("REQUEST_FAILED", "Yêu cầu không thể hoàn tất.")
+        StatusCodes.Status401Unauthorized => ("UNAUTHORIZED", "Vui lÃ²ng Ä‘Äƒng nháº­p Ä‘á»ƒ tiáº¿p tá»¥c."),
+        StatusCodes.Status403Forbidden => ("FORBIDDEN", "TÃ i khoáº£n khÃ´ng cÃ³ quyá»n thá»±c hiá»‡n thao tÃ¡c nÃ y."),
+        StatusCodes.Status404NotFound => ("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y tÃ i nguyÃªn Ä‘Æ°á»£c yÃªu cáº§u."),
+        StatusCodes.Status405MethodNotAllowed => ("METHOD_NOT_ALLOWED", "PhÆ°Æ¡ng thá»©c yÃªu cáº§u khÃ´ng Ä‘Æ°á»£c há»— trá»£."),
+        _ => ("REQUEST_FAILED", "YÃªu cáº§u khÃ´ng thá»ƒ hoÃ n táº¥t.")
     };
     return response.WriteAsJsonAsync(
         ApiResponse<object?>.Failure(code, message),
         statusCodeContext.HttpContext.RequestAborted);
 });
 if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
+}
 
 app.UseCors("Frontend");
 app.UseHttpsRedirection();
