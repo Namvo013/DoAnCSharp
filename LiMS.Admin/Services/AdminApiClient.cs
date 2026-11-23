@@ -243,12 +243,22 @@ public sealed class AdminApiClient : IDisposable
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
-        var problem = await response.Content.ReadFromJsonAsync<ApiProblem>(cancellationToken: cancellationToken);
+        var problem = await response.Content.ReadFromJsonAsync<ApiProblem>(
+            cancellationToken: cancellationToken);
+
         var message = problem?.Message
             ?? problem?.Detail
             ?? problem?.Title
             ?? $"Yêu cầu thất bại với mã HTTP {(int)response.StatusCode}.";
-        return new AdminApiException(response.StatusCode, message);
+
+        var traceId = problem?.TraceId;
+
+        if (!string.IsNullOrWhiteSpace(traceId))
+        {
+            message = $"{message}{Environment.NewLine}Mã tra cứu (TraceId): {traceId}";
+        }
+
+        return new AdminApiException(response.StatusCode, message, traceId);
     }
 
     private static string GetImageMediaType(string filePath) =>
@@ -260,11 +270,16 @@ public sealed class AdminApiClient : IDisposable
             _ => "application/octet-stream"
         };
 
-    public sealed class AdminApiException(HttpStatusCode statusCode, string message)
+    public sealed class AdminApiException(
+        HttpStatusCode statusCode,
+        string message,
+        string? traceId)
         : Exception(message)
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
+
+        public string? TraceId { get; } = traceId;
     }
 
-    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail);
+    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail, string? TraceId);
 }
