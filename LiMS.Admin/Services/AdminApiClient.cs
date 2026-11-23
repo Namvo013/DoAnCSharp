@@ -239,7 +239,7 @@ public sealed class AdminApiClient : IDisposable
             ?? throw new InvalidDataException("API trả về dữ liệu rỗng.");
     }
 
-    private static async Task<AdminApiException> CreateExceptionAsync(
+    internal static async Task<AdminApiException> CreateExceptionAsync(
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
