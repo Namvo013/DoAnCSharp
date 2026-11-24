@@ -22,6 +22,16 @@ public interface ILibraryQueryService
 {
     Task<bool> CanConnectAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<BookResponse>> GetPublicBooksAsync(CancellationToken cancellationToken);
+    Task<PagedResponse<BookResponse>> GetPublicBooksPageAsync(
+        string? search,
+        string? category,
+        string? availability,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken);
+    Task<IReadOnlyList<string>> GetPublicBookCategoriesAsync(CancellationToken cancellationToken);
+    Task<BookResponse?> GetPublicBookAsync(int bookId, CancellationToken cancellationToken);
     Task<BookCoverData?> GetBookCoverAsync(int bookId, CancellationToken cancellationToken);
     Task<ReaderProfileData?> GetReaderProfileAsync(string studentCode, CancellationToken cancellationToken);
     Task<IReadOnlyList<ReaderLoanResponse>> GetReaderLoansAsync(int readerId, CancellationToken cancellationToken);

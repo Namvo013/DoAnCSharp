@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using LiMS.Api.Contracts;
 using LiMS.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,39 @@ public sealed class LibraryController(ILibraryQueryService libraryService) : Con
     [ProducesResponseType<IReadOnlyList<BookResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<BookResponse>>> Books(CancellationToken cancellationToken) =>
         Ok(await libraryService.GetPublicBooksAsync(cancellationToken));
+
+    [AllowAnonymous]
+    [HttpGet("books/paged")]
+    [EndpointSummary("Tìm kiếm, lọc và phân trang danh mục sách công khai")]
+    [ProducesResponseType<PagedResponse<BookResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResponse<BookResponse>>> PagedBooks(
+        [FromQuery, StringLength(100)] string? search,
+        [FromQuery, StringLength(100)] string? category,
+        [FromQuery, RegularExpression("^(available|unavailable)?$")] string? availability,
+        [FromQuery, RegularExpression("^(newest|title)?$")] string? sort,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, Range(1, 100)] int pageSize = 24,
+        CancellationToken cancellationToken = default) =>
+        Ok(await libraryService.GetPublicBooksPageAsync(
+            search, category, availability, sort, page, pageSize, cancellationToken));
+
+    [AllowAnonymous]
+    [HttpGet("book-categories")]
+    [EndpointSummary("Liệt kê thể loại đang có trong danh mục công khai")]
+    [ProducesResponseType<IReadOnlyList<string>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<string>>> BookCategories(CancellationToken cancellationToken) =>
+        Ok(await libraryService.GetPublicBookCategoriesAsync(cancellationToken));
+
+    [AllowAnonymous]
+    [HttpGet("books/{id:int}")]
+    [EndpointSummary("Lấy thông tin một đầu sách đang hoạt động")]
+    [ProducesResponseType<BookResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BookResponse>> GetPublicBook(int id, CancellationToken cancellationToken)
+    {
+        var book = await libraryService.GetPublicBookAsync(id, cancellationToken);
+        return book is null ? NotFound() : Ok(book);
+    }
 
     [AllowAnonymous]
     [HttpGet("books/{id:int}/cover")]

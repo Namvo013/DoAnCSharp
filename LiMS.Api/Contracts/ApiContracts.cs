@@ -21,6 +21,13 @@ public sealed record ApiResponse<T>(
         new(false, code, message, default, errors);
 }
 
+/// <summary>One page of query results and the total number of matching items.</summary>
+public sealed record PagedResponse<T>(
+    IReadOnlyList<T> Items,
+    int TotalCount,
+    int Page,
+    int PageSize);
+
 /// <summary>Thông tin đăng nhập được gửi để xác thực.</summary>
 public sealed record LoginRequest
 {

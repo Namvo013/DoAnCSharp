@@ -63,6 +63,47 @@ public sealed class AdminService(
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<PagedResponse<BookResponse>> GetBooksPageAsync(
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var skip = GetPageSkip(page, pageSize);
+        var query = db.Books.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(book =>
+                book.Title.Contains(term)
+                || book.Author.Contains(term)
+                || (book.Isbn != null && book.Isbn.Contains(term))
+                || book.Category.Name.Contains(term));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query.OrderBy(book => book.Title).ThenBy(book => book.BookId)
+            .Skip(skip).Take(pageSize)
+            .Select(book => new BookResponse(
+                book.BookId,
+                book.Title,
+                book.Author,
+                book.Isbn,
+                book.Category.Name,
+                book.Publisher,
+                book.PublishYear,
+                book.Copies.Count,
+                book.Copies.Count(copy => copy.Status == RecordStatuses.Available),
+                book.Copies.Count(copy => copy.Status == RecordStatuses.OnLoan),
+                book.ShelfLocation,
+                book.Description,
+                book.CoverImageContentType == null
+                    ? null
+                    : "/api/library/books/" + book.BookId + "/cover"))
+            .ToListAsync(cancellationToken);
+        return new PagedResponse<BookResponse>(items, totalCount, page, pageSize);
+    }
+
     public async Task<BookResponse?> GetBookAsync(int id, CancellationToken cancellationToken) =>
         await db.Books.AsNoTracking()
             .Where(book => book.BookId == id)
@@ -277,6 +318,38 @@ public sealed class AdminService(
         return readers.Select(MapReader).ToArray();
     }
 
+    public async Task<PagedResponse<ReaderResponse>> GetReadersPageAsync(
+        string? search,
+        string? cardStatus,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var skip = GetPageSkip(page, pageSize);
+        var query = db.Readers.AsNoTracking().Include(reader => reader.Account).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(reader =>
+                reader.CardNo.Contains(term)
+                || reader.Account.Username.Contains(term)
+                || reader.Account.FullName.Contains(term)
+                || reader.Account.Email.Contains(term)
+                || (reader.Account.Phone != null && reader.Account.Phone.Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(cardStatus))
+            query = query.Where(reader => reader.CardStatus == cardStatus);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var readers = await query.OrderBy(reader => reader.Account.FullName)
+            .ThenBy(reader => reader.ReaderId)
+            .Skip(skip).Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new PagedResponse<ReaderResponse>(
+            readers.Select(MapReader).ToArray(), totalCount, page, pageSize);
+    }
+
     public async Task<ReaderResponse?> GetReaderAsync(int readerId, CancellationToken cancellationToken)
     {
         var reader = await db.Readers.AsNoTracking().Include(item => item.Account)
@@ -458,6 +531,33 @@ public sealed class AdminService(
             .Take(1000)
             .ToListAsync(cancellationToken);
         return loans.Select(MapLoan).ToArray();
+    }
+
+    public async Task<PagedResponse<LoanResponse>> GetLoansPageAsync(
+        string? status,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var skip = GetPageSkip(page, pageSize);
+        var query = LoanQuery().AsNoTracking();
+        if (status == "Overdue")
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            query = query.Where(loan => loan.ReturnDate == null && loan.DueDate < today);
+        }
+        else if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(loan => loan.Status == status);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var loans = await query.OrderByDescending(loan => loan.BorrowDate)
+            .ThenByDescending(loan => loan.LoanId)
+            .Skip(skip).Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new PagedResponse<LoanResponse>(
+            loans.Select(MapLoan).ToArray(), totalCount, page, pageSize);
     }
 
     public async Task<LoanResponse?> GetLoanAsync(long loanId, CancellationToken cancellationToken)
@@ -665,6 +765,25 @@ public sealed class AdminService(
         return fines.Select(MapFine).ToArray();
     }
 
+    public async Task<PagedResponse<FineResponse>> GetFinesPageAsync(
+        string? status,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var skip = GetPageSkip(page, pageSize);
+        var query = FineQuery().AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(fine => fine.Status == status);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var fines = await query.OrderByDescending(fine => fine.FineId)
+            .Skip(skip).Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new PagedResponse<FineResponse>(
+            fines.Select(MapFine).ToArray(), totalCount, page, pageSize);
+    }
+
     public async Task<FineResponse> CollectFineAsync(
         long fineId,
         CollectFineRequest request,
@@ -701,6 +820,26 @@ public sealed class AdminService(
             .Take(1000)
             .ToListAsync(cancellationToken);
         return proposals.Select(MapProposal).ToArray();
+    }
+
+    public async Task<PagedResponse<ProposalResponse>> GetProposalsPageAsync(
+        string? status,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var skip = GetPageSkip(page, pageSize);
+        var query = ProposalQuery().AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(proposal => proposal.Status == status);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var proposals = await query.OrderByDescending(proposal => proposal.CreatedAt)
+            .ThenByDescending(proposal => proposal.ProposalId)
+            .Skip(skip).Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new PagedResponse<ProposalResponse>(
+            proposals.Select(MapProposal).ToArray(), totalCount, page, pageSize);
     }
 
     public async Task<ProposalResponse> ReviewProposalAsync(
@@ -790,6 +929,37 @@ public sealed class AdminService(
                 log.Detail,
                 ToUtcOffset(log.CreatedAt)))
             .ToArray();
+    }
+
+    public async Task<PagedResponse<ActivityLogResponse>> GetActivityLogsPageAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var skip = GetPageSkip(page, pageSize);
+        var query = db.ActivityLogs.AsNoTracking()
+            .Include(log => log.Account)
+            .OrderByDescending(log => log.CreatedAt)
+            .ThenByDescending(log => log.LogId);
+        var totalCount = await query.CountAsync(cancellationToken);
+        var logs = await query.Skip(skip).Take(pageSize).ToListAsync(cancellationToken);
+        var items = logs.Select(log => new ActivityLogResponse(
+            log.LogId,
+            log.Account.Username,
+            log.Action,
+            log.TargetTable,
+            log.TargetId,
+            log.Detail,
+            ToUtcOffset(log.CreatedAt))).ToArray();
+        return new PagedResponse<ActivityLogResponse>(items, totalCount, page, pageSize);
+    }
+
+    private static int GetPageSkip(int page, int pageSize)
+    {
+        if (page < 1 || pageSize is < 1 or > 100)
+            throw new ArgumentException("Page phải từ 1 trở lên, pageSize phải từ 1 đến 100.");
+
+        return (int)Math.Min((long)(page - 1) * pageSize, int.MaxValue);
     }
 
     private IQueryable<Loan> LoanQuery() =>

@@ -10,6 +10,15 @@ GET {{baseUrl}}/api/library/health
 ###
 GET {{baseUrl}}/api/library/books
 
+### Public catalog page
+GET {{baseUrl}}/api/library/books/paged?search=&category=&availability=available&sort=newest&page=1&pageSize=24
+
+### Public book categories
+GET {{baseUrl}}/api/library/book-categories
+
+### Public book details
+GET {{baseUrl}}/api/library/books/1
+
 ### Get a book cover (public)
 GET {{baseUrl}}/api/library/books/1/cover
 
@@ -100,6 +109,10 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/api/admin/books?search=ISBN-or-title
 Authorization: Bearer {{token}}
 
+### Paged book search
+GET {{baseUrl}}/api/admin/books/paged?search=ISBN-or-title&page=1&pageSize=50
+Authorization: Bearer {{token}}
+
 ###
 GET {{baseUrl}}/api/admin/books/1
 Authorization: Bearer {{token}}
@@ -175,6 +188,26 @@ Content-Type: application/json
 
 ### Readers
 GET {{baseUrl}}/api/admin/readers?search=reader
+Authorization: Bearer {{token}}
+
+### Paged reader search
+GET {{baseUrl}}/api/admin/readers/paged?search=reader&cardStatus=Active&page=1&pageSize=50
+Authorization: Bearer {{token}}
+
+### Paged loans by status
+GET {{baseUrl}}/api/admin/loans/paged?status=Overdue&page=1&pageSize=50
+Authorization: Bearer {{token}}
+
+### Paged fines by status
+GET {{baseUrl}}/api/admin/fines/paged?status=Pending&page=1&pageSize=50
+Authorization: Bearer {{token}}
+
+### Paged purchase proposals by status
+GET {{baseUrl}}/api/admin/proposals/paged?status=Pending&page=1&pageSize=50
+Authorization: Bearer {{token}}
+
+### Paged activity log
+GET {{baseUrl}}/api/admin/activity-logs/paged?page=1&pageSize=50
 Authorization: Bearer {{token}}
 
 ###
