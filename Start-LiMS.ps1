@@ -42,35 +42,49 @@ function Test-LiMSApi {
     return $false
 }
 
-function Test-LiMSBackupRoute {
-    try {
-        $null = Invoke-WebRequest `
-            -Uri "$apiUrl/api/admin/database-backups" `
-            -TimeoutSec 3 `
-            -UseBasicParsing `
-            -ErrorAction Stop
-        return $true
-    }
-    catch {
-        $response = $_.Exception.Response
-        if ($response) {
-            $statusCode = [int]$response.StatusCode
-            if ($statusCode -eq 401 -or $statusCode -eq 403) {
-                return $true
-            }
-            if ($statusCode -eq 404) {
-                $script:lastApiCheck = "API is healthy but does not contain the database-backups route (HTTP 404)."
-                return $false
-            }
+function Test-LiMSRequiredRoutes {
+    $requiredRoutes = @(
+        @{
+            Uri = "$apiUrl/api/admin/database-backups"
+            Name = "database-backups"
+        },
+        @{
+            Uri = "$apiUrl/api/admin/books/paged?page=1&pageSize=50"
+            Name = "paged book listing"
         }
+    )
 
-        $script:lastApiCheck = $_.Exception.Message
-        return $false
+    foreach ($route in $requiredRoutes) {
+        try {
+            $null = Invoke-WebRequest `
+                -Uri $route.Uri `
+                -TimeoutSec 3 `
+                -UseBasicParsing `
+                -ErrorAction Stop
+        }
+        catch {
+            $response = $_.Exception.Response
+            if ($response) {
+                $statusCode = [int]$response.StatusCode
+                if ($statusCode -eq 401 -or $statusCode -eq 403) {
+                    continue
+                }
+                if ($statusCode -eq 404) {
+                    $script:lastApiCheck = "API is healthy but is missing the required '$($route.Name)' route (HTTP 404)."
+                    return $false
+                }
+            }
+
+            $script:lastApiCheck = $_.Exception.Message
+            return $false
+        }
     }
+
+    return $true
 }
 
 $apiHealthy = Test-LiMSApi
-if ($apiHealthy -and -not (Test-LiMSBackupRoute)) {
+if ($apiHealthy -and -not (Test-LiMSRequiredRoutes)) {
     $apiListener = Get-NetTCPConnection -LocalPort $apiPort -State Listen -ErrorAction SilentlyContinue |
         Select-Object -First 1
     $listenerProcessId = if ($apiListener) { $apiListener.OwningProcess } else { "unknown" }
@@ -95,7 +109,7 @@ if (-not $apiHealthy) {
     $apiReady = $false
     $deadline = (Get-Date).AddSeconds(120)
     while ((Get-Date) -lt $deadline) {
-        if ((Test-LiMSApi) -and (Test-LiMSBackupRoute)) {
+        if ((Test-LiMSApi) -and (Test-LiMSRequiredRoutes)) {
             $apiReady = $true
             break
         }
