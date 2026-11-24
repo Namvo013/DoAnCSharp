@@ -95,6 +95,8 @@ Tài khoản Admin ban đầu được tạo khi cấu hình cơ sở dữ liệ
 ## 6. Tài liệu trong kho mã nguồn
 
 - [Danh sách lớp thực thể và các mối quan hệ](tai-lieu/danh-sach-lop-va-moi-quan-he.md)
+- `docs/BAO-CAO-PHAN-TICH-VA-TRUY-VET.md`: phạm vi hiện hành, khảo sát có nguồn, ERD, lược đồ quan hệ và ma trận truy vết yêu cầu.
+- `docs/DEPLOYMENT-AND-VERIFICATION.md`: cấu hình môi trường, kiểm tra migration, SQL Server và responsive.
 - `docs/requirements/`: tài liệu yêu cầu và đặc tả.
 - `docs/operations/`: tài liệu hướng dẫn vận hành.
 - `docs/archive/`: tài liệu tham khảo của các phiên bản giao diện trước.
