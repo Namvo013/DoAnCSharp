@@ -52,6 +52,10 @@ public sealed class AdminMainForm : Form
         Font = new Font("Segoe UI", 9.5F),
         Margin = new Padding(12, 3, 0, 3)
     };
+    private readonly ComboBox _loanStatusFilter = CreateStatusFilter();
+    private readonly ComboBox _fineStatusFilter = CreateStatusFilter();
+    private readonly ComboBox _proposalStatusFilter = CreateStatusFilter();
+    private readonly Dictionary<DataGridView, GridPager> _gridPagers = [];
     private readonly Dictionary<string, Label> _dashboardValues = [];
     private readonly Label _dashboardSummary = new();
     private readonly Label _popularBooks = new();
@@ -273,7 +277,10 @@ public sealed class AdminMainForm : Form
         }
 
         _readerStatusFilter.SelectedIndexChanged += async (_, _) =>
+        {
+            _gridPagers[_readersGrid].Page = 1;
             await RunAsync(LoadReadersAsync);
+        };
 
         _tabs.TabPages.Add(page);
     }
@@ -287,6 +294,8 @@ public sealed class AdminMainForm : Form
             ("Cho mượn / quét barcode", CheckoutAsync),
             ("Nhận trả / quét barcode", ReturnAsync),
             ("Gia hạn phiếu chọn", RenewAsync));
+        _loanStatusFilter.Items.AddRange(["Tất cả trạng thái", "Đang mượn", "Đã trả", "Quá hạn"]);
+        AddGridStatusFilter(page, _loansGrid, _loanStatusFilter, "Trạng thái:", LoadLoansAsync);
         _tabs.TabPages.Add(page);
     }
 
@@ -297,6 +306,8 @@ public sealed class AdminMainForm : Form
             _finesGrid,
             LoadFinesAsync,
             ("Ghi nhận thanh toán", CollectFineAsync));
+        _fineStatusFilter.Items.AddRange(["Tất cả trạng thái", "Chưa thanh toán", "Đã thanh toán"]);
+        AddGridStatusFilter(page, _finesGrid, _fineStatusFilter, "Thanh toán:", LoadFinesAsync);
         _tabs.TabPages.Add(page);
     }
 
@@ -308,6 +319,8 @@ public sealed class AdminMainForm : Form
             LoadProposalsAsync,
             ("Duyệt đề xuất", () => ReviewProposalAsync("Approved")),
             ("Từ chối đề xuất", () => ReviewProposalAsync("Rejected")));
+        _proposalStatusFilter.Items.AddRange(["Tất cả trạng thái", "Chờ duyệt", "Đã duyệt", "Từ chối"]);
+        AddGridStatusFilter(page, _proposalsGrid, _proposalStatusFilter, "Trạng thái:", LoadProposalsAsync);
         _tabs.TabPages.Add(page);
     }
 
@@ -322,6 +335,36 @@ public sealed class AdminMainForm : Form
 
     private void AddActivityLogsPage() =>
         _tabs.TabPages.Add(CreateGridPage("Nhật ký hoạt động", _logsGrid, LoadActivityLogsAsync));
+
+    private void AddGridStatusFilter(
+        TabPage page,
+        DataGridView grid,
+        ComboBox filter,
+        string label,
+        Func<Task> refresh)
+    {
+        filter.SelectedIndex = 0;
+        if (page.Controls.OfType<TableLayoutPanel>().First()
+            .GetControlFromPosition(0, 1) is FlowLayoutPanel toolbar)
+        {
+            var filterLabel = new Label
+            {
+                Text = label,
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = TextColor,
+                Margin = new Padding(12, 10, 5, 0)
+            };
+            toolbar.Controls.Add(filterLabel);
+            toolbar.Controls.Add(filter);
+        }
+
+        filter.SelectedIndexChanged += async (_, _) =>
+        {
+            _gridPagers[grid].Page = 1;
+            await RunAsync(refresh);
+        };
+    }
 
     private void AddDatabaseBackupsPage()
     {
@@ -396,8 +439,25 @@ public sealed class AdminMainForm : Form
             Padding = new Padding(1),
             BackColor = SurfaceColor
         };
+        var pager = new GridPager();
+        _gridPagers[grid] = pager;
+        pager.Previous.Click += async (_, _) =>
+        {
+            if (pager.Page <= 1)
+                return;
+            pager.Page--;
+            await RunAsync(refresh);
+        };
+        pager.Next.Click += async (_, _) =>
+        {
+            if (pager.Page >= pager.TotalPages)
+                return;
+            pager.Page++;
+            await RunAsync(refresh);
+        };
         grid.Dock = DockStyle.Fill;
         gridContainer.Controls.Add(grid);
+        gridContainer.Controls.Add(pager.Panel);
         layout.Controls.Add(gridContainer, 0, 2);
         page.Controls.Add(layout);
         return page;
@@ -962,8 +1022,14 @@ public sealed class AdminMainForm : Form
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    private async Task LoadBooksAsync() =>
-        _booksGrid.DataSource = (await _api.GetBooksAsync(_bookSearch, CancellationToken.None)).ToList();
+    private async Task LoadBooksAsync()
+    {
+        var result = await FetchPageAsync(
+            _gridPagers[_booksGrid],
+            (page, pageSize) => _api.GetBooksPageAsync(
+                _bookSearch, page, pageSize, CancellationToken.None));
+        _booksGrid.DataSource = result.Items.ToList();
+    }
 
     private async Task LoadReadersAsync()
     {
@@ -974,12 +1040,11 @@ public sealed class AdminMainForm : Form
             _ => null
         };
 
-        _readersGrid.DataSource = (
-            await _api.GetReadersAsync(
-                _readerSearch,
-                cardStatus,
-                CancellationToken.None)
-        ).ToList();
+        var result = await FetchPageAsync(
+            _gridPagers[_readersGrid],
+            (page, pageSize) => _api.GetReadersPageAsync(
+                _readerSearch, cardStatus, page, pageSize, CancellationToken.None));
+        _readersGrid.DataSource = result.Items.ToList();
     }
 
     private async void ToggleReaderActivityAsync(object? sender, DataGridViewCellEventArgs e)
@@ -1019,6 +1084,7 @@ public sealed class AdminMainForm : Form
     private async Task SearchBooksAsync()
     {
         _bookSearch = _bookSearchInput.Text.Trim();
+        _gridPagers[_booksGrid].Page = 1;
         await LoadBooksAsync();
     }
 
@@ -1028,23 +1094,64 @@ public sealed class AdminMainForm : Form
         if (values is null)
             return;
         _readerSearch = values[0];
+        _gridPagers[_readersGrid].Page = 1;
         await LoadReadersAsync();
     }
 
-    private async Task LoadLoansAsync() =>
-        _loansGrid.DataSource = (await _api.GetLoansAsync(null, CancellationToken.None)).ToList();
+    private async Task LoadLoansAsync()
+    {
+        var status = _loanStatusFilter.SelectedIndex switch
+        {
+            1 => "Borrowed",
+            2 => "Returned",
+            3 => "Overdue",
+            _ => null
+        };
+        var result = await FetchPageAsync(
+            _gridPagers[_loansGrid],
+            (page, pageSize) => _api.GetLoansPageAsync(status, page, pageSize, CancellationToken.None));
+        _loansGrid.DataSource = result.Items.ToList();
+    }
 
-    private async Task LoadFinesAsync() =>
-        _finesGrid.DataSource = (await _api.GetFinesAsync(null, CancellationToken.None)).ToList();
+    private async Task LoadFinesAsync()
+    {
+        var status = _fineStatusFilter.SelectedIndex switch
+        {
+            1 => "Pending",
+            2 => "Paid",
+            _ => null
+        };
+        var result = await FetchPageAsync(
+            _gridPagers[_finesGrid],
+            (page, pageSize) => _api.GetFinesPageAsync(status, page, pageSize, CancellationToken.None));
+        _finesGrid.DataSource = result.Items.ToList();
+    }
 
-    private async Task LoadProposalsAsync() =>
-        _proposalsGrid.DataSource = (await _api.GetProposalsAsync(null, CancellationToken.None)).ToList();
+    private async Task LoadProposalsAsync()
+    {
+        var status = _proposalStatusFilter.SelectedIndex switch
+        {
+            1 => "Pending",
+            2 => "Approved",
+            3 => "Rejected",
+            _ => null
+        };
+        var result = await FetchPageAsync(
+            _gridPagers[_proposalsGrid],
+            (page, pageSize) => _api.GetProposalsPageAsync(status, page, pageSize, CancellationToken.None));
+        _proposalsGrid.DataSource = result.Items.ToList();
+    }
 
     private async Task LoadSettingsAsync() =>
         _settingsGrid.DataSource = (await _api.GetSettingsAsync(CancellationToken.None)).ToList();
 
-    private async Task LoadActivityLogsAsync() =>
-        _logsGrid.DataSource = (await _api.GetActivityLogsAsync(CancellationToken.None)).ToList();
+    private async Task LoadActivityLogsAsync()
+    {
+        var result = await FetchPageAsync(
+            _gridPagers[_logsGrid],
+            (page, pageSize) => _api.GetActivityLogsPageAsync(page, pageSize, CancellationToken.None));
+        _logsGrid.DataSource = result.Items.ToList();
+    }
 
     private async Task LoadDatabaseBackupsAsync()
     {
@@ -1612,6 +1719,38 @@ public sealed class AdminMainForm : Form
         return grid;
     }
 
+    private static ComboBox CreateStatusFilter()
+    {
+        var filter = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Width = 165,
+            Height = 34,
+            Font = new Font("Segoe UI", 9.5F),
+            Margin = new Padding(12, 3, 0, 3),
+            BackColor = AdminTheme.SurfaceRaised,
+            ForeColor = TextColor,
+            FlatStyle = FlatStyle.Flat
+        };
+        return filter;
+    }
+
+    private async Task<PagedResponse<T>> FetchPageAsync<T>(
+        GridPager pager,
+        Func<int, int, Task<PagedResponse<T>>> fetch)
+    {
+        var result = await fetch(pager.Page, pager.PageSize);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(result.TotalCount / (double)pager.PageSize));
+        if (pager.Page > totalPages)
+        {
+            pager.Page = totalPages;
+            result = await fetch(pager.Page, pager.PageSize);
+        }
+
+        pager.SetTotalCount(result.TotalCount);
+        return result;
+    }
+
     private static Button CreateActionButton(string title, bool destructive = false)
     {
         var primary = !destructive && title is
@@ -1647,6 +1786,57 @@ public sealed class AdminMainForm : Form
         title.Contains("Ngừng", StringComparison.OrdinalIgnoreCase)
         || title.Contains("Khóa", StringComparison.OrdinalIgnoreCase)
         || title.Contains("Từ chối", StringComparison.OrdinalIgnoreCase);
+
+    private sealed class GridPager
+    {
+        public const int DefaultPageSize = 50;
+
+        public int Page { get; set; } = 1;
+        public int PageSize => DefaultPageSize;
+        public int TotalPages { get; private set; } = 1;
+        public Panel Panel { get; } = new()
+        {
+            Dock = DockStyle.Bottom,
+            Height = 44,
+            BackColor = AdminTheme.Surface
+        };
+        public Button Previous { get; } = CreateActionButton("Trang trước");
+        public Button Next { get; } = CreateActionButton("Trang sau");
+        private Label Summary { get; } = new()
+        {
+            AutoSize = true,
+            ForeColor = AdminTheme.Muted,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(8, 12, 8, 0)
+        };
+
+        public GridPager()
+        {
+            var controls = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                WrapContents = false,
+                Padding = new Padding(4, 1, 4, 1),
+                BackColor = AdminTheme.Surface
+            };
+            Previous.MinimumSize = new Size(92, 36);
+            Next.MinimumSize = new Size(92, 36);
+            controls.Controls.Add(Next);
+            controls.Controls.Add(Previous);
+            controls.Controls.Add(Summary);
+            Panel.Controls.Add(controls);
+            SetTotalCount(0);
+        }
+
+        public void SetTotalCount(int totalCount)
+        {
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+            Summary.Text = $"Trang {Page} / {TotalPages}  |  {totalCount:N0} kết quả";
+            Previous.Enabled = Page > 1;
+            Next.Enabled = Page < TotalPages;
+        }
+    }
 
     private static void FormatGridColumns(DataGridView grid)
     {

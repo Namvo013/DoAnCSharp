@@ -10,6 +10,11 @@ public sealed record LoginResponse(
     string AccessToken,
     DateTimeOffset ExpiresAt);
 public sealed record MessageResponse(string Message);
+public sealed record PagedResponse<T>(
+    IReadOnlyList<T> Items,
+    int TotalCount,
+    int Page,
+    int PageSize);
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 public sealed record BookResponse(
     int Id,
