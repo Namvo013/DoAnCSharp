@@ -27,6 +27,13 @@ public sealed class AdminMainForm : Form
         Padding = new Point(0, 0)
     };
     private readonly DataGridView _booksGrid = CreateGrid();
+    private readonly TextBox _bookSearchInput = new()
+    {
+        Width = 300,
+        Height = 36,
+        PlaceholderText = "Tên, tác giả, ISBN hoặc thể loại",
+        Margin = new Padding(0, 3, 8, 3)
+    };
     private readonly DataGridView _copiesGrid = CreateGrid();
     private readonly DataGridView _readersGrid = CreateGrid();
     private readonly DataGridView _loansGrid = CreateGrid();
@@ -166,13 +173,57 @@ public sealed class AdminMainForm : Form
             "Kho sách",
             _booksGrid,
             LoadBooksAsync,
-            ("Tìm đầu sách", SearchBooksAsync),
             ("Thêm đầu sách", CreateBookAsync),
             ("Sửa đầu sách", EditBookAsync),
             ("Thêm/cập nhật ảnh bìa", UploadBookCoverAsync),
             ("Ngừng kinh doanh", DeactivateBookAsync),
             ("Quản lý bản sao", ManageCopiesAsync),
             ("Thêm bản sao", AddCopiesAsync));
+
+        AdminTheme.StyleTextBox(_bookSearchInput);
+        _bookSearchInput.Text = _bookSearch;
+        _bookSearchInput.KeyDown += async (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter)
+                return;
+
+            e.SuppressKeyPress = true;
+            await RunAsync(SearchBooksAsync);
+        };
+
+        var layout = page.Controls.OfType<TableLayoutPanel>().First();
+        var gridContainer = layout.GetControlFromPosition(0, 2)!;
+        layout.Controls.Remove(gridContainer);
+        layout.RowCount = 4;
+        layout.RowStyles[2] = new RowStyle(SizeType.Absolute, 48);
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var searchBar = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+            AutoScroll = true,
+            BackColor = CanvasColor,
+            Padding = new Padding(0, 2, 0, 2)
+        };
+        var search = CreateActionButton("Tìm đầu sách");
+        search.Click += async (_, _) => await RunAsync(SearchBooksAsync);
+        var clearSearch = CreateActionButton("Xóa tìm kiếm");
+        clearSearch.Click += async (_, _) =>
+        {
+            _bookSearchInput.Clear();
+            await RunAsync(async () =>
+            {
+                _bookSearch = "";
+                await LoadBooksAsync();
+            });
+        };
+        searchBar.Controls.Add(_bookSearchInput);
+        searchBar.Controls.Add(search);
+        searchBar.Controls.Add(clearSearch);
+        layout.Controls.Add(searchBar, 0, 2);
+        layout.Controls.Add(gridContainer, 0, 3);
+
         _tabs.TabPages.Add(page);
     }
 
@@ -967,10 +1018,7 @@ public sealed class AdminMainForm : Form
 
     private async Task SearchBooksAsync()
     {
-        var values = Prompt("Tìm đầu sách", ("Tên, tác giả, ISBN hoặc thể loại", _bookSearch, false));
-        if (values is null)
-            return;
-        _bookSearch = values[0];
+        _bookSearch = _bookSearchInput.Text.Trim();
         await LoadBooksAsync();
     }
 
@@ -1554,6 +1602,13 @@ public sealed class AdminMainForm : Form
         grid.DefaultCellStyle.Padding = new Padding(8, 2, 4, 2);
         grid.DefaultCellStyle.NullValue = "—";
         grid.DataBindingComplete += (_, _) => FormatGridColumns(grid);
+        grid.CellToolTipTextNeeded += (_, e) =>
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+                return;
+
+            e.ToolTipText = grid.Rows[e.RowIndex].Cells[e.ColumnIndex].FormattedValue?.ToString() ?? "";
+        };
         return grid;
     }
 
