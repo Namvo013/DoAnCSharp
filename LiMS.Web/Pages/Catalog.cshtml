@@ -5,12 +5,13 @@
 }
 
 <div class="page-head"><div><span class="eyebrow">THƯ MỤC</span><h1>Tra cứu tài liệu</h1></div></div>
-<form method="get" class="catalog-tools" data-live-search aria-label="Tìm và lọc tài liệu">
+<form method="get" class="catalog-tools" aria-label="Tìm và lọc tài liệu">
+    <input type="hidden" name="PageNumber" value="1" />
     <div class="search-box">
         <label>
-            <input asp-for="Query" data-live-search-input maxlength="100"
-                   aria-label="Tìm theo tên sách, tác giả hoặc ISBN"
-                   placeholder="Tìm theo tên sách, tác giả hoặc ISBN..." />
+            <input asp-for="Query" maxlength="100"
+                   aria-label="Tìm theo tên sách, tác giả, ISBN hoặc thể loại"
+                   placeholder="Tìm theo tên sách, tác giả, ISBN hoặc thể loại..." />
         </label>
         <button class="primary" type="submit">Tìm kiếm</button>
     </div>
@@ -38,7 +39,7 @@
     <div class="form-message error" role="alert">@Model.SearchError</div>
 }
 <div class="result-bar" aria-live="polite" aria-atomic="true">
-    <strong><span data-result-count>@Model.Books.Count</span> tài liệu</strong>
+    <strong>Hiển thị @Model.Books.Count trên @Model.TotalCount tài liệu</strong>
 </div>
 <section class="catalog-grid">
     @if (Model.Books.Count == 0)
@@ -48,7 +49,7 @@
     @foreach (var book in Model.Books)
     {
         var coverImageUrl = Model.GetAbsoluteBookCoverUrl(book.CoverImageUrl);
-        <article class="book-card" data-book-card>
+        <article class="book-card">
             <div class="cover clean">
                 @if (coverImageUrl is not null)
                 {
@@ -68,11 +69,22 @@
             </div>
         </article>
     }
-    @if (Model.Books.Count > 0)
-    {
-        <div class="empty-state" data-live-empty hidden>
-            <strong>Không có kết quả phù hợp</strong>
-            <p>Thử từ khóa ngắn hơn hoặc nhấn Tìm kiếm để tra cứu toàn bộ thư viện.</p>
-        </div>
-    }
 </section>
+@if (Model.TotalPages > 1)
+{
+    <nav class="catalog-pagination" aria-label="Phân trang danh mục sách">
+        @if (Model.HasPreviousPage)
+        {
+            <a class="secondary compact" asp-page="/Catalog" asp-route-PageNumber="@(Model.PageNumber - 1)"
+               asp-route-Query="@Model.Query" asp-route-Category="@Model.Category"
+               asp-route-Availability="@Model.Availability" asp-route-Sort="@Model.Sort">← Trang trước</a>
+        }
+        <span>Trang @Model.PageNumber / @Model.TotalPages</span>
+        @if (Model.HasNextPage)
+        {
+            <a class="secondary compact" asp-page="/Catalog" asp-route-PageNumber="@(Model.PageNumber + 1)"
+               asp-route-Query="@Model.Query" asp-route-Category="@Model.Category"
+               asp-route-Availability="@Model.Availability" asp-route-Sort="@Model.Sort">Trang sau →</a>
+        }
+    </nav>
+}

@@ -21,9 +21,17 @@ public class CatalogModel(LibraryApiClient libraryApi) : PageModel
     [BindProperty(SupportsGet = true)]
     public string Sort { get; set; } = "newest";
 
+    [BindProperty(SupportsGet = true), Range(1, int.MaxValue)]
+    public int PageNumber { get; set; } = 1;
+
     public IReadOnlyList<ApiBook> Books { get; private set; } = [];
     public IReadOnlyList<string> Categories { get; private set; } = [];
     public string? SearchError { get; private set; }
+    public int TotalCount { get; private set; }
+    public int PageSize { get; } = 24;
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
+    public bool HasPreviousPage => PageNumber > 1;
+    public bool HasNextPage => PageNumber < TotalPages;
 
     public string? GetAbsoluteBookCoverUrl(string? coverImageUrl) =>
         libraryApi.GetAbsoluteBookCoverUrl(coverImageUrl);
@@ -33,45 +41,37 @@ public class CatalogModel(LibraryApiClient libraryApi) : PageModel
         if (string.IsNullOrEmpty(HttpContext.Session.GetString("StudentCode")))
             return RedirectToPage("/Index");
 
+        if (ModelState.TryGetValue(nameof(PageNumber), out var pageState) && pageState.Errors.Count > 0
+            || Availability is not ("" or "available" or "unavailable")
+            || Sort is not ("newest" or "title"))
+            return BadRequest(ModelState);
+
         if (Query is { Length: > 100 })
         {
             SearchError = "Từ khóa tìm kiếm không được vượt quá 100 ký tự.";
             Query = Query[..100];
         }
-        var searchTerm = Query?.Trim() ?? string.Empty;
 
-        var books = await libraryApi.GetBooksAsync(cancellationToken);
-        Categories = books.Select(book => book.Category)
-            .Where(category => !string.IsNullOrWhiteSpace(category))
-            .Select(category => category!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(category => category, StringComparer.CurrentCultureIgnoreCase)
-            .ToArray();
-
-        IEnumerable<ApiBook> filtered = books;
-        if (searchTerm.Length > 0)
+        Categories = await libraryApi.GetBookCategoriesAsync(cancellationToken);
+        var result = await LoadPageAsync(cancellationToken);
+        TotalCount = result.TotalCount;
+        if (PageNumber > TotalPages)
         {
-            filtered = filtered.Where(book =>
-                (book.Title?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (book.Author?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (book.Isbn?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
+            PageNumber = TotalPages;
+            result = await LoadPageAsync(cancellationToken);
+            TotalCount = result.TotalCount;
         }
-
-        if (!string.IsNullOrWhiteSpace(Category))
-            filtered = filtered.Where(book =>
-                string.Equals(book.Category, Category, StringComparison.OrdinalIgnoreCase));
-
-        filtered = Availability switch
-        {
-            "available" => filtered.Where(book => book.AvailableCopies > 0),
-            "unavailable" => filtered.Where(book => book.AvailableCopies == 0),
-            _ => filtered
-        };
-        Books = Sort == "title"
-            ? filtered.OrderBy(book => book.Title, StringComparer.CurrentCultureIgnoreCase).ToArray()
-            : filtered.OrderByDescending(book => book.PublishedYear ?? 0)
-                .ThenBy(book => book.Title, StringComparer.CurrentCultureIgnoreCase)
-                .ToArray();
+        Books = result.Items;
         return Page();
     }
+
+    private Task<ApiPagedResponse<ApiBook>> LoadPageAsync(CancellationToken cancellationToken) =>
+        libraryApi.GetBooksPageAsync(
+            Query?.Trim(),
+            Category,
+            Availability,
+            Sort,
+            PageNumber,
+            PageSize,
+            cancellationToken);
 }

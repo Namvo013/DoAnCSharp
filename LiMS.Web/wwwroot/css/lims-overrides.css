@@ -217,6 +217,14 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .form-message { border-radius: 11px; }
 .result-bar { margin: 20px 0 14px; color: var(--muted); }
 .result-bar strong { color: var(--ink); }
+.catalog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 24px 0;
+}
+.catalog-pagination span { color: var(--muted); font-size: 13px; font-weight: 600; }
 .toast { box-shadow: 0 12px 28px rgba(23, 42, 32, .18); }
 
 @media (max-width: 1000px) {

@@ -66,6 +66,37 @@ public sealed class LibraryApiClientTests
     }
 
     [Fact]
+    public async Task GetBooksPageAsync_encodes_filters_and_deserializes_page_metadata()
+    {
+        var expected = new ApiPagedResponse<ApiBook>(
+            [new ApiBook(3, "Catalog title", "Writer", null, "History", null, 2020, 2, 1, 1)],
+            31,
+            2,
+            24);
+        string? requestPath = null;
+        using var client = CreateClient((request, _) =>
+        {
+            requestPath = request.RequestUri!.PathAndQuery;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(expected)
+            });
+        });
+        var service = CreateService(client);
+
+        var result = await service.GetBooksPageAsync(
+            "C# 12", ".NET", "available", "title", 2, 24, CancellationToken.None);
+
+        Assert.NotNull(requestPath);
+        Assert.Contains("/api/library/books/paged?", requestPath);
+        Assert.Contains("search=C%23%2012", requestPath);
+        Assert.Contains("category=.NET", requestPath);
+        Assert.Equal(31, result.TotalCount);
+        Assert.Equal(2, result.Page);
+        Assert.Equal("Catalog title", Assert.Single(result.Items).Title);
+    }
+
+    [Fact]
     public async Task CreateReservationAsync_preserves_API_business_error_message()
     {
         using var client = CreateClient((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict)

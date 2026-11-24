@@ -14,6 +14,7 @@ public class HomeModel(LibraryApiClient libraryApi) : PageModel
     public string TodayWeekday { get; private set; } = "";
     public string TodayLabel { get; private set; } = "";
     public IReadOnlyList<ApiBook> Books { get; private set; } = [];
+    public int TotalBookCount { get; private set; }
     public IReadOnlyList<ApiLoan> ActiveLoans { get; private set; } = [];
 
     public string? GetAbsoluteBookCoverUrl(string? coverImageUrl) =>
@@ -31,7 +32,10 @@ public class HomeModel(LibraryApiClient libraryApi) : PageModel
         TodayWeekday = vietnameseNow.ToString("dddd", new System.Globalization.CultureInfo("vi-VN"));
         TodayLabel = $"{vietnameseNow.Day} tháng {vietnameseNow.Month}, {vietnameseNow.Year}";
 
-        Books = await libraryApi.GetBooksAsync(cancellationToken);
+        var bookPage = await libraryApi.GetBooksPageAsync(
+            null, null, null, "newest", 1, 4, cancellationToken);
+        Books = bookPage.Items;
+        TotalBookCount = bookPage.TotalCount;
         ActiveLoans = (await libraryApi.GetLoansAsync(StudentCode, cancellationToken))
             .Where(LoansModel.IsActive)
             .ToList();
@@ -59,4 +63,19 @@ public class HomeModel(LibraryApiClient libraryApi) : PageModel
         var remaining = (dueDateInVietnam - today).Days;
         return remaining >= 0 ? $"Còn {remaining} ngày" : $"Quá hạn {Math.Abs(remaining)} ngày";
     }
+
+    public static int LoanProgressPercentage(ApiLoan loan, DateTimeOffset now)
+    {
+        var borrowedAt = VietnamTime.Convert(loan.BorrowedDate).DateTime;
+        var deadline = VietnamTime.Convert(loan.DueDate).Date.AddDays(1);
+        var duration = (deadline - borrowedAt).TotalSeconds;
+        if (duration <= 0)
+            return 100;
+
+        var elapsed = (VietnamTime.Convert(now).DateTime - borrowedAt).TotalSeconds;
+        return (int)Math.Clamp(Math.Round(elapsed / duration * 100), 0, 100);
+    }
+
+    public int LoanProgressPercentage(ApiLoan loan) =>
+        LoanProgressPercentage(loan, DateTimeOffset.UtcNow);
 }

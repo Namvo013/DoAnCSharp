@@ -39,6 +39,59 @@ public sealed class LibraryApiClient(
             ?? throw new InvalidDataException("API danh sách sách trả về dữ liệu rỗng.");
     }
 
+    public async Task<ApiPagedResponse<ApiBook>> GetBooksPageAsync(
+        string? search,
+        string? category,
+        string? availability,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var query = new List<string>
+        {
+            $"page={page}",
+            $"pageSize={pageSize}",
+            $"sort={Uri.EscapeDataString(sort ?? "newest")}"
+        };
+        if (!string.IsNullOrWhiteSpace(search))
+            query.Add($"search={Uri.EscapeDataString(search)}");
+        if (!string.IsNullOrWhiteSpace(category))
+            query.Add($"category={Uri.EscapeDataString(category)}");
+        if (!string.IsNullOrWhiteSpace(availability))
+            query.Add($"availability={Uri.EscapeDataString(availability)}");
+
+        using var message = CreateRequest(
+            HttpMethod.Get,
+            $"api/library/books/paged?{string.Join("&", query)}");
+        using var response = await _client.SendAsync(message, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ApiPagedResponse<ApiBook>>(
+                cancellationToken: cancellationToken)
+            ?? throw new InvalidDataException("API phân trang sách trả về dữ liệu rỗng.");
+    }
+
+    public async Task<IReadOnlyList<string>> GetBookCategoriesAsync(CancellationToken cancellationToken)
+    {
+        using var message = CreateRequest(HttpMethod.Get, "api/library/book-categories");
+        using var response = await _client.SendAsync(message, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<string>>(cancellationToken: cancellationToken)
+            ?? throw new InvalidDataException("API thể loại sách trả về dữ liệu rỗng.");
+    }
+
+    public async Task<ApiBook?> GetBookAsync(int id, CancellationToken cancellationToken)
+    {
+        using var message = CreateRequest(HttpMethod.Get, $"api/library/books/{id}");
+        using var response = await _client.SendAsync(message, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ApiBook>(cancellationToken: cancellationToken)
+            ?? throw new InvalidDataException("API chi tiết sách trả về dữ liệu rỗng.");
+    }
+
     public async Task<IReadOnlyList<ApiLoan>> GetLoansAsync(
         string studentCode,
         CancellationToken cancellationToken)
