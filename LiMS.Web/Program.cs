@@ -27,9 +27,22 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.IdleTimeout = TimeSpan.FromHours(2);
 });
+var apiBaseUrlValue = builder.Configuration["LiMSApi:BaseUrl"];
+if (!Uri.TryCreate(apiBaseUrlValue, UriKind.Absolute, out var apiBaseUrl)
+    || (apiBaseUrl.Scheme != Uri.UriSchemeHttp && apiBaseUrl.Scheme != Uri.UriSchemeHttps))
+{
+    throw new InvalidOperationException(
+        "Configure LiMSApi:BaseUrl as an absolute HTTP(S) URL (for example, https://api.example.com/).");
+}
+
+if (!builder.Environment.IsDevelopment() && apiBaseUrl.Scheme != Uri.UriSchemeHttps)
+{
+    throw new InvalidOperationException("LiMSApi:BaseUrl must use HTTPS outside Development.");
+}
+
 builder.Services.AddHttpClient("LiMS.Api", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["LiMSApi:BaseUrl"]!);
+    client.BaseAddress = apiBaseUrl;
 });
 
 var app = builder.Build();

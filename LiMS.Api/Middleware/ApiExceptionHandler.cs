@@ -54,10 +54,7 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) :
             logger.LogWarning(exception, "Handled API exception {ErrorCode} with status {StatusCode}.", code, statusCode);
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(
-            ApiResponse<object?>.Failure(code, message) with
-            {
-                TraceId = httpContext.TraceIdentifier
-            },
+            ApiResponse<object?>.Failure(code, message),
             cancellationToken);
         return true;
     }

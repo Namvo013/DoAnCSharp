@@ -76,7 +76,7 @@ public sealed class LoginForm : Form
         var formPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = AdminTheme.Canvas,
+            BackColor = AdminTheme.Surface,
             Padding = new Padding(50, 54, 50, 30)
         };
 
@@ -102,7 +102,7 @@ public sealed class LoginForm : Form
         {
             Location = new Point(50, 146),
             Size = new Size(410, 220),
-            BackColor = AdminTheme.Canvas
+            BackColor = AdminTheme.Surface
         };
         fields.Controls.Add(CreateField("Địa chỉ máy chủ API", _apiAddress, 0));
         fields.Controls.Add(CreateField("Tài khoản", _username, 72));
@@ -149,26 +149,22 @@ public sealed class LoginForm : Form
 
         using var brush = new LinearGradientBrush(
             panel.ClientRectangle,
-            Color.FromArgb(20, 106, 48),
-            Color.FromArgb(28, 126, 60),
+            Color.FromArgb(22, 43, 32),
+            Color.FromArgb(35, 82, 55),
             LinearGradientMode.Vertical);
         e.Graphics.FillRectangle(brush, panel.ClientRectangle);
 
-        using var circleBrush = new SolidBrush(Color.FromArgb(26, Color.White));
+        using var circleBrush = new SolidBrush(Color.FromArgb(18, Color.White));
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
         e.Graphics.FillEllipse(circleBrush, 220, 350, 150, 150);
         e.Graphics.FillEllipse(circleBrush, -72, 405, 180, 180);
-        AdminTheme.PaintLibraryBotanical(
-            e.Graphics,
-            new Rectangle(152, 300, 180, 190),
-            Color.FromArgb(72, Color.White));
     }
 
     private static Panel CreateField(string caption, TextBox textBox, int top)
     {
         textBox.Dock = DockStyle.None;
         textBox.BorderStyle = BorderStyle.FixedSingle;
-        textBox.BackColor = Color.FromArgb(251, 255, 252);
+        textBox.BackColor = Color.FromArgb(248, 250, 248);
         textBox.ForeColor = AdminTheme.Text;
         textBox.Font = new Font("Segoe UI", 10.5F);
         textBox.Location = new Point(0, 24);

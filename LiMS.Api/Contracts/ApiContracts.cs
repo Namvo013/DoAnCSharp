@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 
 namespace LiMS.Api.Contracts;
 
@@ -11,22 +10,12 @@ public sealed record ApiResponse<T>(
     T? Data = default,
     IReadOnlyDictionary<string, string[]>? Errors = null)
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? TraceId { get; init; }
-
     public static ApiResponse<T> Failure(
         string code,
         string message,
         IReadOnlyDictionary<string, string[]>? errors = null) =>
         new(false, code, message, default, errors);
 }
-
-/// <summary>One page of query results and the total number of matching items.</summary>
-public sealed record PagedResponse<T>(
-    IReadOnlyList<T> Items,
-    int TotalCount,
-    int Page,
-    int PageSize);
 
 /// <summary>Thông tin đăng nhập được gửi để xác thực.</summary>
 public sealed record LoginRequest
@@ -79,6 +68,21 @@ public sealed record BookResponse(
 
 /// <summary>Mã vạch, trạng thái và đầu sách của một bản sao.</summary>
 public sealed record BookCopyResponse(int Id, int BookId, string Barcode, string Status);
+
+/// <summary>Thể loại sách và số đầu sách đang sử dụng thể loại đó.</summary>
+public sealed record CategoryResponse(int Id, string Name, int BookCount);
+
+public sealed record CreateCategoryRequest
+{
+    [Required, StringLength(100, MinimumLength = 1)]
+    public required string Name { get; init; }
+}
+
+public sealed record UpdateCategoryRequest
+{
+    [Required, StringLength(100, MinimumLength = 1)]
+    public required string Name { get; init; }
+}
 
 /// <summary>Tệp ảnh bìa được tải lên cho một đầu sách.</summary>
 public sealed record UploadBookCoverRequest

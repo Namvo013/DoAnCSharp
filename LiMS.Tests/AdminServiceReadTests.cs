@@ -34,26 +34,6 @@ public sealed class AdminServiceReadTests
     }
 
     [Fact]
-    public async Task GetBooksPageAsync_returns_only_requested_page_and_full_total()
-    {
-        await using var db = CreateDatabase();
-        var category = new Category { Name = "Reference" };
-        db.Categories.Add(category);
-        db.Books.AddRange(
-            new Book { Category = category, Title = "Alpha title", Author = "Writer" },
-            new Book { Category = category, Title = "Beta title", Author = "Writer" },
-            new Book { Category = category, Title = "Other", Author = "Writer" });
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-
-        var page = await CreateService(db).GetBooksPageAsync("title", 2, 1, CancellationToken.None);
-
-        Assert.Equal(2, page.TotalCount);
-        Assert.Equal("Beta title", Assert.Single(page.Items).Title);
-        Assert.Empty(db.ChangeTracker.Entries<Book>());
-    }
-
-    [Fact]
     public async Task GetReadersAsync_filters_by_status_and_returns_no_tracked_entities()
     {
         await using var db = CreateDatabase();

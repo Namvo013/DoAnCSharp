@@ -54,12 +54,14 @@ if (!string.IsNullOrWhiteSpace(legacyConnectionString))
 }
 
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"];
-
+var generatedDevelopmentKey = false;
 if (string.IsNullOrWhiteSpace(jwtSigningKey))
 {
-    throw new InvalidOperationException(
-        "Missing configuration: Jwt:SigningKey. " +
-        "Configure it using User Secrets or an environment variable.");
+    if (!builder.Environment.IsDevelopment())
+        throw new InvalidOperationException("Configure Jwt:SigningKey outside Development.");
+
+    jwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    generatedDevelopmentKey = true;
 }
 
 var jwtOptions = new JwtOptions
@@ -69,25 +71,9 @@ var jwtOptions = new JwtOptions
     SigningKey = jwtSigningKey,
     AccessTokenMinutes = builder.Configuration.GetValue("Jwt:AccessTokenMinutes", 120)
 };
-
 if (Encoding.UTF8.GetByteCount(jwtOptions.SigningKey) < 32)
-{
-    throw new InvalidOperationException(
-        "Jwt:SigningKey must contain at least 32 bytes.");
-}
+    throw new InvalidOperationException("Jwt:SigningKey must contain at least 32 bytes.");
 
-if (string.IsNullOrWhiteSpace(jwtOptions.Issuer) ||
-    string.IsNullOrWhiteSpace(jwtOptions.Audience))
-{
-    throw new InvalidOperationException(
-        "JWT Issuer and Audience must not be empty.");
-}
-
-if (jwtOptions.AccessTokenMinutes <= 0)
-{
-    throw new InvalidOperationException(
-        "Jwt:AccessTokenMinutes must be greater than zero.");
-}
 builder.Services.Configure<JwtOptions>(options =>
 {
     options.Issuer = jwtOptions.Issuer;
@@ -129,6 +115,8 @@ builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
           .AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
+if (generatedDevelopmentKey)
+    app.Logger.LogWarning("No JWT signing key configured. A temporary development key was generated; existing tokens will expire when the API restarts.");
 
 app.UseExceptionHandler();
 app.UseStatusCodePages(statusCodeContext =>
@@ -147,9 +135,7 @@ app.UseStatusCodePages(statusCodeContext =>
         statusCodeContext.HttpContext.RequestAborted);
 });
 if (app.Environment.IsDevelopment())
-{
     app.MapOpenApi();
-}
 
 app.UseCors("Frontend");
 app.UseHttpsRedirection();

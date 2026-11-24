@@ -10,11 +10,6 @@ public sealed record LoginResponse(
     string AccessToken,
     DateTimeOffset ExpiresAt);
 public sealed record MessageResponse(string Message);
-public sealed record PagedResponse<T>(
-    IReadOnlyList<T> Items,
-    int TotalCount,
-    int Page,
-    int PageSize);
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 public sealed record BookResponse(
     int Id,
@@ -30,6 +25,9 @@ public sealed record BookResponse(
     string? Description,
     string? CoverImageUrl);
 public sealed record BookCopyResponse(int Id, int BookId, string Barcode, string Status);
+public sealed record CategoryResponse(int Id, string Name, int BookCount);
+public sealed record CreateCategoryRequest(string Name);
+public sealed record UpdateCategoryRequest(string Name);
 public sealed record CreateBookRequest(
     string Category,
     string Title,

@@ -29,12 +29,6 @@ public sealed record ApiBook(
     string? Description = null,
     string? CoverImageUrl = null);
 
-public sealed record ApiPagedResponse<T>(
-    IReadOnlyList<T> Items,
-    int TotalCount,
-    int Page,
-    int PageSize);
-
 public sealed record ApiLoan(
     int Id,
     int UserId,

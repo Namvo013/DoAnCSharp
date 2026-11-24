@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using System.ComponentModel.DataAnnotations;
 using LiMS.Api.Contracts;
 using LiMS.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -29,15 +28,32 @@ public sealed class AdminController(
         CancellationToken cancellationToken) =>
         Ok(await adminService.GetBooksAsync(search, cancellationToken));
 
-    [HttpGet("books/paged")]
-    [EndpointSummary("Liệt kê hoặc tìm kiếm đầu sách quản trị theo trang")]
-    [ProducesResponseType<PagedResponse<BookResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<BookResponse>>> PagedBooks(
-        [FromQuery, StringLength(100)] string? search,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, Range(1, 100)] int pageSize = 50,
-        CancellationToken cancellationToken = default) =>
-        Ok(await adminService.GetBooksPageAsync(search, page, pageSize, cancellationToken));
+    [HttpGet("categories")]
+    public async Task<ActionResult<IReadOnlyList<CategoryResponse>>> Categories(CancellationToken cancellationToken) =>
+        Ok(await adminService.GetCategoriesAsync(cancellationToken));
+
+    [HttpPost("categories")]
+    public async Task<ActionResult<CategoryResponse>> CreateCategory(
+        CreateCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var category = await adminService.CreateCategoryAsync(request, GetActorId(), cancellationToken);
+        return CreatedAtAction(nameof(Categories), new { }, category);
+    }
+
+    [HttpPut("categories/{id:int}")]
+    public async Task<ActionResult<CategoryResponse>> UpdateCategory(
+        int id,
+        UpdateCategoryRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await adminService.UpdateCategoryAsync(id, request, GetActorId(), cancellationToken));
+
+    [HttpDelete("categories/{id:int}")]
+    public async Task<IActionResult> DeleteCategory(int id, CancellationToken cancellationToken)
+    {
+        await adminService.DeleteCategoryAsync(id, GetActorId(), cancellationToken);
+        return NoContent();
+    }
 
     [HttpGet("books/{id:int}")]
     [EndpointSummary("Lấy thông tin một đầu sách")]
@@ -123,17 +139,6 @@ public sealed class AdminController(
     CancellationToken cancellationToken) =>
     Ok(await adminService.GetReadersAsync(search, cardStatus, cancellationToken));
 
-    [HttpGet("readers/paged")]
-    [EndpointSummary("Tìm kiếm và phân trang hồ sơ độc giả")]
-    [ProducesResponseType<PagedResponse<ReaderResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<ReaderResponse>>> PagedReaders(
-        [FromQuery, StringLength(100)] string? search,
-        [FromQuery] string? cardStatus,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, Range(1, 100)] int pageSize = 50,
-        CancellationToken cancellationToken = default) =>
-        Ok(await adminService.GetReadersPageAsync(search, cardStatus, page, pageSize, cancellationToken));
-
     [HttpGet("readers/{id:int}")]
     [EndpointSummary("Lấy thông tin một độc giả")]
     public async Task<ActionResult<ReaderResponse>> GetReader(int id, CancellationToken cancellationToken)
@@ -185,16 +190,6 @@ public sealed class AdminController(
         CancellationToken cancellationToken) =>
         Ok(await adminService.GetLoansAsync(status, cancellationToken));
 
-    [HttpGet("loans/paged")]
-    [EndpointSummary("Lọc và phân trang phiếu mượn trả")]
-    [ProducesResponseType<PagedResponse<LoanResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<LoanResponse>>> PagedLoans(
-        [FromQuery] string? status,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, Range(1, 100)] int pageSize = 50,
-        CancellationToken cancellationToken = default) =>
-        Ok(await adminService.GetLoansPageAsync(status, page, pageSize, cancellationToken));
-
     [HttpGet("loans/{id:long}")]
     [EndpointSummary("Lấy thông tin một phiếu mượn trả")]
     public async Task<ActionResult<LoanResponse>> GetLoan(long id, CancellationToken cancellationToken)
@@ -234,16 +229,6 @@ public sealed class AdminController(
         CancellationToken cancellationToken) =>
         Ok(await adminService.GetFinesAsync(status, cancellationToken));
 
-    [HttpGet("fines/paged")]
-    [EndpointSummary("Lọc và phân trang khoản phạt")]
-    [ProducesResponseType<PagedResponse<FineResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<FineResponse>>> PagedFines(
-        [FromQuery] string? status,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, Range(1, 100)] int pageSize = 50,
-        CancellationToken cancellationToken = default) =>
-        Ok(await adminService.GetFinesPageAsync(status, page, pageSize, cancellationToken));
-
     [HttpPut("fines/{id:long}/collect")]
     [EndpointSummary("Thu khoản phạt còn nợ")]
     public async Task<ActionResult<FineResponse>> CollectFine(
@@ -259,16 +244,6 @@ public sealed class AdminController(
         [FromQuery] string? status,
         CancellationToken cancellationToken) =>
         Ok(await adminService.GetProposalsAsync(status, cancellationToken));
-
-    [HttpGet("proposals/paged")]
-    [EndpointSummary("Lọc và phân trang đề xuất mua sách")]
-    [ProducesResponseType<PagedResponse<ProposalResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<ProposalResponse>>> PagedProposals(
-        [FromQuery] string? status,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, Range(1, 100)] int pageSize = 50,
-        CancellationToken cancellationToken = default) =>
-        Ok(await adminService.GetProposalsPageAsync(status, page, pageSize, cancellationToken));
 
     [HttpPut("proposals/{id:int}/review")]
     [EndpointSummary("Duyệt hoặc từ chối đề xuất mua sách")]
@@ -303,16 +278,6 @@ public sealed class AdminController(
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default) =>
         Ok(await adminService.GetActivityLogsAsync(page, pageSize, cancellationToken));
-
-    [HttpGet("activity-logs/paged")]
-    [EndpointSummary("Lấy nhật ký hoạt động quản trị theo trang và tổng số")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType<PagedResponse<ActivityLogResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResponse<ActivityLogResponse>>> PagedActivityLogs(
-        [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, Range(1, 100)] int pageSize = 50,
-        CancellationToken cancellationToken = default) =>
-        Ok(await adminService.GetActivityLogsPageAsync(page, pageSize, cancellationToken));
 
     [HttpGet("database-backups")]
     [Authorize(Roles = "Admin")]

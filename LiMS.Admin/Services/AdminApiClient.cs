@@ -55,14 +55,21 @@ public sealed class AdminApiClient : IDisposable
                 : $"api/admin/books?search={Uri.EscapeDataString(search)}",
             cancellationToken);
 
-    public Task<PagedResponse<BookResponse>> GetBooksPageAsync(
-        string? search,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken) =>
-        GetAsync<PagedResponse<BookResponse>>(
-            BuildPagedUri("api/admin/books/paged", page, pageSize, ("search", search)),
-            cancellationToken);
+    public Task<IReadOnlyList<CategoryResponse>> GetCategoriesAsync(CancellationToken cancellationToken) =>
+        GetAsync<IReadOnlyList<CategoryResponse>>("api/admin/categories", cancellationToken);
+
+    public Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request, CancellationToken cancellationToken) =>
+        PostAsync<CategoryResponse>("api/admin/categories", request, cancellationToken);
+
+    public Task<CategoryResponse> UpdateCategoryAsync(int id, UpdateCategoryRequest request, CancellationToken cancellationToken) =>
+        PutAsync<CategoryResponse>($"api/admin/categories/{id}", request, cancellationToken);
+
+    public async Task DeleteCategoryAsync(int id, CancellationToken cancellationToken)
+    {
+        using var response = await _client.DeleteAsync($"api/admin/categories/{id}", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw await CreateExceptionAsync(response, cancellationToken);
+    }
 
     public Task<BookResponse> CreateBookAsync(CreateBookRequest request, CancellationToken cancellationToken) =>
         PostAsync<BookResponse>("api/admin/books", request, cancellationToken);
@@ -125,17 +132,6 @@ public sealed class AdminApiClient : IDisposable
             cancellationToken);
     }
 
-    public Task<PagedResponse<ReaderResponse>> GetReadersPageAsync(
-        string? search,
-        string? cardStatus,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken) =>
-        GetAsync<PagedResponse<ReaderResponse>>(
-            BuildPagedUri("api/admin/readers/paged", page, pageSize,
-                ("search", search), ("cardStatus", cardStatus)),
-            cancellationToken);
-
     public Task<ReaderResponse> CreateReaderAsync(CreateReaderRequest request, CancellationToken cancellationToken) =>
         PostAsync<ReaderResponse>("api/admin/readers", request, cancellationToken);
 
@@ -158,12 +154,6 @@ public sealed class AdminApiClient : IDisposable
                 : $"api/admin/loans?status={Uri.EscapeDataString(status)}",
             cancellationToken);
 
-    public Task<PagedResponse<LoanResponse>> GetLoansPageAsync(
-        string? status, int page, int pageSize, CancellationToken cancellationToken) =>
-        GetAsync<PagedResponse<LoanResponse>>(
-            BuildPagedUri("api/admin/loans/paged", page, pageSize, ("status", status)),
-            cancellationToken);
-
     public Task<LoanResponse> CheckoutAsync(CheckoutRequest request, CancellationToken cancellationToken) =>
         PostAsync<LoanResponse>("api/admin/loans/checkout", request, cancellationToken);
 
@@ -180,12 +170,6 @@ public sealed class AdminApiClient : IDisposable
                 : $"api/admin/fines?status={Uri.EscapeDataString(status)}",
             cancellationToken);
 
-    public Task<PagedResponse<FineResponse>> GetFinesPageAsync(
-        string? status, int page, int pageSize, CancellationToken cancellationToken) =>
-        GetAsync<PagedResponse<FineResponse>>(
-            BuildPagedUri("api/admin/fines/paged", page, pageSize, ("status", status)),
-            cancellationToken);
-
     public Task<FineResponse> CollectFineAsync(
         long id,
         CollectFineRequest request,
@@ -199,12 +183,6 @@ public sealed class AdminApiClient : IDisposable
             string.IsNullOrWhiteSpace(status)
                 ? "api/admin/proposals"
                 : $"api/admin/proposals?status={Uri.EscapeDataString(status)}",
-            cancellationToken);
-
-    public Task<PagedResponse<ProposalResponse>> GetProposalsPageAsync(
-        string? status, int page, int pageSize, CancellationToken cancellationToken) =>
-        GetAsync<PagedResponse<ProposalResponse>>(
-            BuildPagedUri("api/admin/proposals/paged", page, pageSize, ("status", status)),
             cancellationToken);
 
     public Task<ProposalResponse> ReviewProposalAsync(
@@ -228,12 +206,6 @@ public sealed class AdminApiClient : IDisposable
     public Task<IReadOnlyList<ActivityLogResponse>> GetActivityLogsAsync(CancellationToken cancellationToken) =>
         GetAsync<IReadOnlyList<ActivityLogResponse>>("api/admin/activity-logs?page=1&pageSize=100", cancellationToken);
 
-    public Task<PagedResponse<ActivityLogResponse>> GetActivityLogsPageAsync(
-        int page, int pageSize, CancellationToken cancellationToken) =>
-        GetAsync<PagedResponse<ActivityLogResponse>>(
-            BuildPagedUri("api/admin/activity-logs/paged", page, pageSize),
-            cancellationToken);
-
     public Task<DatabaseBackupStatusResponse> GetDatabaseBackupsAsync(CancellationToken cancellationToken) =>
         GetAsync<DatabaseBackupStatusResponse>("api/admin/database-backups", cancellationToken);
 
@@ -253,19 +225,6 @@ public sealed class AdminApiClient : IDisposable
     {
         using var response = await _client.GetAsync(uri, cancellationToken);
         return await ReadResponseAsync<TResponse>(response, cancellationToken);
-    }
-
-    private static string BuildPagedUri(
-        string endpoint,
-        int page,
-        int pageSize,
-        params (string Name, string? Value)[] filters)
-    {
-        var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
-        query.AddRange(filters
-            .Where(filter => !string.IsNullOrWhiteSpace(filter.Value))
-            .Select(filter => $"{filter.Name}={Uri.EscapeDataString(filter.Value!)}"));
-        return $"{endpoint}?{string.Join("&", query)}";
     }
 
     private async Task<TResponse> PostAsync<TResponse>(
@@ -296,26 +255,16 @@ public sealed class AdminApiClient : IDisposable
             ?? throw new InvalidDataException("API trả về dữ liệu rỗng.");
     }
 
-    internal static async Task<AdminApiException> CreateExceptionAsync(
+    private static async Task<AdminApiException> CreateExceptionAsync(
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
-        var problem = await response.Content.ReadFromJsonAsync<ApiProblem>(
-            cancellationToken: cancellationToken);
-
+        var problem = await response.Content.ReadFromJsonAsync<ApiProblem>(cancellationToken: cancellationToken);
         var message = problem?.Message
             ?? problem?.Detail
             ?? problem?.Title
             ?? $"Yêu cầu thất bại với mã HTTP {(int)response.StatusCode}.";
-
-        var traceId = problem?.TraceId;
-
-        if (!string.IsNullOrWhiteSpace(traceId))
-        {
-            message = $"{message}{Environment.NewLine}Mã tra cứu (TraceId): {traceId}";
-        }
-
-        return new AdminApiException(response.StatusCode, message, traceId);
+        return new AdminApiException(response.StatusCode, message);
     }
 
     private static string GetImageMediaType(string filePath) =>
@@ -327,16 +276,11 @@ public sealed class AdminApiClient : IDisposable
             _ => "application/octet-stream"
         };
 
-    public sealed class AdminApiException(
-        HttpStatusCode statusCode,
-        string message,
-        string? traceId)
+    public sealed class AdminApiException(HttpStatusCode statusCode, string message)
         : Exception(message)
     {
         public HttpStatusCode StatusCode { get; } = statusCode;
-
-        public string? TraceId { get; } = traceId;
     }
 
-    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail, string? TraceId);
+    private sealed record ApiProblem(string? Code, string? Message, string? Title, string? Detail);
 }

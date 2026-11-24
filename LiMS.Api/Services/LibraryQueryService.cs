@@ -17,59 +17,6 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             .Select(MapBook())
             .ToListAsync(cancellationToken);
 
-    public async Task<PagedResponse<BookResponse>> GetPublicBooksPageAsync(
-        string? search,
-        string? category,
-        string? availability,
-        string? sort,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken)
-    {
-        var skip = GetPageSkip(page, pageSize);
-        var query = db.Books.AsNoTracking().Where(book => book.IsActive);
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim();
-            query = query.Where(book =>
-                book.Title.Contains(term)
-                || book.Author.Contains(term)
-                || (book.Isbn != null && book.Isbn.Contains(term))
-                || book.Category.Name.Contains(term));
-        }
-
-        if (!string.IsNullOrWhiteSpace(category))
-            query = query.Where(book => book.Category.Name == category);
-
-        if (availability == "available")
-            query = query.Where(book => book.Copies.Any(copy => copy.Status == RecordStatuses.Available));
-        else if (availability == "unavailable")
-            query = query.Where(book => !book.Copies.Any(copy => copy.Status == RecordStatuses.Available));
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var ordered = sort == "title"
-            ? query.OrderBy(book => book.Title).ThenBy(book => book.BookId)
-            : query.OrderByDescending(book => book.PublishYear).ThenBy(book => book.Title).ThenBy(book => book.BookId);
-        var items = await ordered.Skip(skip).Take(pageSize)
-            .Select(MapBook())
-            .ToListAsync(cancellationToken);
-        return new PagedResponse<BookResponse>(items, totalCount, page, pageSize);
-    }
-
-    public async Task<IReadOnlyList<string>> GetPublicBookCategoriesAsync(CancellationToken cancellationToken) =>
-        await db.Books.AsNoTracking()
-            .Where(book => book.IsActive)
-            .Select(book => book.Category.Name)
-            .Distinct()
-            .OrderBy(category => category)
-            .ToListAsync(cancellationToken);
-
-    public Task<BookResponse?> GetPublicBookAsync(int bookId, CancellationToken cancellationToken) =>
-        db.Books.AsNoTracking()
-            .Where(book => book.BookId == bookId && book.IsActive)
-            .Select(MapBook())
-            .SingleOrDefaultAsync(cancellationToken);
-
     public async Task<BookCoverData?> GetBookCoverAsync(int bookId, CancellationToken cancellationToken)
     {
         var cover = await db.Books.AsNoTracking()
@@ -246,14 +193,6 @@ public sealed class LibraryQueryService(LiMSDbContext db) : ILibraryQueryService
             book.CoverImageContentType == null
                 ? null
                 : "/api/library/books/" + book.BookId + "/cover");
-
-    private static int GetPageSkip(int page, int pageSize)
-    {
-        if (page < 1 || pageSize is < 1 or > 100)
-            throw new ArgumentException("Page phải từ 1 trở lên, pageSize phải từ 1 đến 100.");
-
-        return (int)Math.Min((long)(page - 1) * pageSize, int.MaxValue);
-    }
 
     private static DateTimeOffset ToUtcOffset(DateTime value) =>
         new(DateTime.SpecifyKind(value, DateTimeKind.Utc));

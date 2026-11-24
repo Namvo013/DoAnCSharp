@@ -19,7 +19,7 @@
 
 <section class="stats">
     <article><div class="stat-icon blue">▣</div><div><span>Đang mượn</span><strong>@Model.ActiveLoans.Count</strong><small>phiếu đang hoạt động</small></div></article>
-    <article><div class="stat-icon amber">◷</div><div><span>Tổng sách</span><strong>@Model.TotalBookCount</strong><small>tài liệu trong thư viện</small></div></article>
+    <article><div class="stat-icon amber">◷</div><div><span>Tổng sách</span><strong>@Model.Books.Count</strong><small>tài liệu trong thư viện</small></div></article>
     <article><div class="stat-icon red">⌕</div><div><span>Mã độc giả</span><strong class="student-code">@Model.StudentCode</strong><small>tài khoản đang đăng nhập</small></div></article>
 </section>
 
@@ -59,17 +59,7 @@
                         <strong>@loan.Book?.Title</strong><small>@loan.Book?.Author</small>
                     }
                 </div>
-                <div class="loan-info">
-                    <strong>@loan.Book?.Title</strong>
-                    <span>Phiếu mượn #@loan.Id</span>
-                    @{
-                        var progress = Model.LoanProgressPercentage(loan);
-                    }
-                    <div class="progress" role="progressbar" aria-label="Thời hạn mượn đã sử dụng"
-                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="@progress">
-                        <i style="width:@progress%"></i>
-                    </div>
-                </div>
+                <div class="loan-info"><strong>@loan.Book?.Title</strong><span>Phiếu mượn #@loan.Id</span><div class="progress"><i style="width:68%"></i></div></div>
                 <div class="due"><small>Hạn trả</small><strong>@VietnamTime.Convert(loan.DueDate).ToString("dd/MM/yyyy")</strong><em>@Model.RemainingDays(loan.DueDate)</em></div>
                 <a class="secondary" asp-page="/Loans">Chi tiết</a>
             </div>

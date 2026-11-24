@@ -51,7 +51,8 @@ public sealed class BookModel(LibraryApiClient libraryApi) : PageModel
 
     private async Task<IActionResult> LoadBookAsync(int id, CancellationToken cancellationToken)
     {
-        Book = await libraryApi.GetBookAsync(id, cancellationToken);
+        var books = await libraryApi.GetBooksAsync(cancellationToken);
+        Book = books.SingleOrDefault(book => book.Id == id);
         return Book is null ? NotFound() : Page();
     }
 }

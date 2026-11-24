@@ -27,13 +27,7 @@ public sealed class AdminMainForm : Form
         Padding = new Point(0, 0)
     };
     private readonly DataGridView _booksGrid = CreateGrid();
-    private readonly TextBox _bookSearchInput = new()
-    {
-        Width = 300,
-        Height = 36,
-        PlaceholderText = "Tên, tác giả, ISBN hoặc thể loại",
-        Margin = new Padding(0, 3, 8, 3)
-    };
+    private readonly DataGridView _categoriesGrid = CreateGrid();
     private readonly DataGridView _copiesGrid = CreateGrid();
     private readonly DataGridView _readersGrid = CreateGrid();
     private readonly DataGridView _loansGrid = CreateGrid();
@@ -52,14 +46,10 @@ public sealed class AdminMainForm : Form
         Font = new Font("Segoe UI", 9.5F),
         Margin = new Padding(12, 3, 0, 3)
     };
-    private readonly ComboBox _loanStatusFilter = CreateStatusFilter();
-    private readonly ComboBox _fineStatusFilter = CreateStatusFilter();
-    private readonly ComboBox _proposalStatusFilter = CreateStatusFilter();
-    private readonly Dictionary<DataGridView, GridPager> _gridPagers = [];
     private readonly Dictionary<string, Label> _dashboardValues = [];
     private readonly Label _dashboardSummary = new();
     private readonly Label _popularBooks = new();
-    private readonly Panel _monthlyReportChart = new() { BackColor = AdminTheme.SurfaceRaised };
+    private readonly Panel _monthlyReportChart = new() { BackColor = SurfaceColor };
     private readonly Label _backupSummary = new();
     private readonly Label _currentPageTitle = new();
     private readonly List<Button> _navigationButtons = [];
@@ -102,6 +92,7 @@ public sealed class AdminMainForm : Form
     {
         AddDashboardPage();
         AddBooksPage();
+        AddCategoriesPage();
         AddReadersPage();
         AddLoansPage();
         AddFinesPage();
@@ -177,57 +168,25 @@ public sealed class AdminMainForm : Form
             "Kho sách",
             _booksGrid,
             LoadBooksAsync,
+            ("Tìm đầu sách", SearchBooksAsync),
             ("Thêm đầu sách", CreateBookAsync),
             ("Sửa đầu sách", EditBookAsync),
             ("Thêm/cập nhật ảnh bìa", UploadBookCoverAsync),
             ("Ngừng kinh doanh", DeactivateBookAsync),
             ("Quản lý bản sao", ManageCopiesAsync),
             ("Thêm bản sao", AddCopiesAsync));
+        _tabs.TabPages.Add(page);
+    }
 
-        AdminTheme.StyleTextBox(_bookSearchInput);
-        _bookSearchInput.Text = _bookSearch;
-        _bookSearchInput.KeyDown += async (_, e) =>
-        {
-            if (e.KeyCode != Keys.Enter)
-                return;
-
-            e.SuppressKeyPress = true;
-            await RunAsync(SearchBooksAsync);
-        };
-
-        var layout = page.Controls.OfType<TableLayoutPanel>().First();
-        var gridContainer = layout.GetControlFromPosition(0, 2)!;
-        layout.Controls.Remove(gridContainer);
-        layout.RowCount = 4;
-        layout.RowStyles[2] = new RowStyle(SizeType.Absolute, 48);
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var searchBar = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            WrapContents = false,
-            AutoScroll = true,
-            BackColor = CanvasColor,
-            Padding = new Padding(0, 2, 0, 2)
-        };
-        var search = CreateActionButton("Tìm đầu sách");
-        search.Click += async (_, _) => await RunAsync(SearchBooksAsync);
-        var clearSearch = CreateActionButton("Xóa tìm kiếm");
-        clearSearch.Click += async (_, _) =>
-        {
-            _bookSearchInput.Clear();
-            await RunAsync(async () =>
-            {
-                _bookSearch = "";
-                await LoadBooksAsync();
-            });
-        };
-        searchBar.Controls.Add(_bookSearchInput);
-        searchBar.Controls.Add(search);
-        searchBar.Controls.Add(clearSearch);
-        layout.Controls.Add(searchBar, 0, 2);
-        layout.Controls.Add(gridContainer, 0, 3);
-
+    private void AddCategoriesPage()
+    {
+        var page = CreateGridPage(
+            "Thể loại sách",
+            _categoriesGrid,
+            LoadCategoriesAsync,
+            ("Thêm thể loại", CreateCategoryAsync),
+            ("Đổi tên", RenameCategoryAsync),
+            ("Xóa thể loại trống", DeleteCategoryAsync));
         _tabs.TabPages.Add(page);
     }
 
@@ -277,10 +236,7 @@ public sealed class AdminMainForm : Form
         }
 
         _readerStatusFilter.SelectedIndexChanged += async (_, _) =>
-        {
-            _gridPagers[_readersGrid].Page = 1;
             await RunAsync(LoadReadersAsync);
-        };
 
         _tabs.TabPages.Add(page);
     }
@@ -294,8 +250,6 @@ public sealed class AdminMainForm : Form
             ("Cho mượn / quét barcode", CheckoutAsync),
             ("Nhận trả / quét barcode", ReturnAsync),
             ("Gia hạn phiếu chọn", RenewAsync));
-        _loanStatusFilter.Items.AddRange(["Tất cả trạng thái", "Đang mượn", "Đã trả", "Quá hạn"]);
-        AddGridStatusFilter(page, _loansGrid, _loanStatusFilter, "Trạng thái:", LoadLoansAsync);
         _tabs.TabPages.Add(page);
     }
 
@@ -306,8 +260,6 @@ public sealed class AdminMainForm : Form
             _finesGrid,
             LoadFinesAsync,
             ("Ghi nhận thanh toán", CollectFineAsync));
-        _fineStatusFilter.Items.AddRange(["Tất cả trạng thái", "Chưa thanh toán", "Đã thanh toán"]);
-        AddGridStatusFilter(page, _finesGrid, _fineStatusFilter, "Thanh toán:", LoadFinesAsync);
         _tabs.TabPages.Add(page);
     }
 
@@ -319,8 +271,6 @@ public sealed class AdminMainForm : Form
             LoadProposalsAsync,
             ("Duyệt đề xuất", () => ReviewProposalAsync("Approved")),
             ("Từ chối đề xuất", () => ReviewProposalAsync("Rejected")));
-        _proposalStatusFilter.Items.AddRange(["Tất cả trạng thái", "Chờ duyệt", "Đã duyệt", "Từ chối"]);
-        AddGridStatusFilter(page, _proposalsGrid, _proposalStatusFilter, "Trạng thái:", LoadProposalsAsync);
         _tabs.TabPages.Add(page);
     }
 
@@ -335,36 +285,6 @@ public sealed class AdminMainForm : Form
 
     private void AddActivityLogsPage() =>
         _tabs.TabPages.Add(CreateGridPage("Nhật ký hoạt động", _logsGrid, LoadActivityLogsAsync));
-
-    private void AddGridStatusFilter(
-        TabPage page,
-        DataGridView grid,
-        ComboBox filter,
-        string label,
-        Func<Task> refresh)
-    {
-        filter.SelectedIndex = 0;
-        if (page.Controls.OfType<TableLayoutPanel>().First()
-            .GetControlFromPosition(0, 1) is FlowLayoutPanel toolbar)
-        {
-            var filterLabel = new Label
-            {
-                Text = label,
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9.5F),
-                ForeColor = TextColor,
-                Margin = new Padding(12, 10, 5, 0)
-            };
-            toolbar.Controls.Add(filterLabel);
-            toolbar.Controls.Add(filter);
-        }
-
-        filter.SelectedIndexChanged += async (_, _) =>
-        {
-            _gridPagers[grid].Page = 1;
-            await RunAsync(refresh);
-        };
-    }
 
     private void AddDatabaseBackupsPage()
     {
@@ -439,25 +359,8 @@ public sealed class AdminMainForm : Form
             Padding = new Padding(1),
             BackColor = SurfaceColor
         };
-        var pager = new GridPager();
-        _gridPagers[grid] = pager;
-        pager.Previous.Click += async (_, _) =>
-        {
-            if (pager.Page <= 1)
-                return;
-            pager.Page--;
-            await RunAsync(refresh);
-        };
-        pager.Next.Click += async (_, _) =>
-        {
-            if (pager.Page >= pager.TotalPages)
-                return;
-            pager.Page++;
-            await RunAsync(refresh);
-        };
         grid.Dock = DockStyle.Fill;
         gridContainer.Controls.Add(grid);
-        gridContainer.Controls.Add(pager.Panel);
         layout.Controls.Add(gridContainer, 0, 2);
         page.Controls.Add(layout);
         return page;
@@ -545,9 +448,8 @@ public sealed class AdminMainForm : Form
             Dock = DockStyle.Fill,
             BackColor = SurfaceColor,
             Margin = new Padding(0, 0, 14, 14),
-            Padding = new Padding(1)
+            Padding = Padding.Empty
         };
-        AdminTheme.StyleSurfaceCard(card, metricColor);
         var accent = new Panel
         {
             Location = new Point(18, 18),
@@ -560,7 +462,7 @@ public sealed class AdminMainForm : Form
             ColumnCount = 1,
             RowCount = 4,
             Padding = new Padding(32, 13, 16, 14),
-            BackColor = Color.Transparent
+            BackColor = SurfaceColor
         };
         content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         content.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
@@ -624,13 +526,11 @@ public sealed class AdminMainForm : Form
             Padding = new Padding(20),
             Margin = new Padding(0, 0, 14, 0)
         };
-        AdminTheme.StyleSurfaceCard(card, AdminTheme.Accent);
         var heading = new Label
         {
             Text = title,
             Dock = DockStyle.Top,
             Height = 28,
-            BackColor = Color.Transparent,
             AutoEllipsis = true,
             ForeColor = PrimaryColor,
             Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
@@ -668,13 +568,12 @@ public sealed class AdminMainForm : Form
             BackColor = SidebarColor,
             Padding = new Padding(0)
         };
-        AdminTheme.StyleSidebarPanel(sidebar);
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
-            BackColor = Color.Transparent
+            BackColor = SidebarColor
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -684,7 +583,7 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(22, 20, 12, 10),
-            BackColor = Color.Transparent
+            BackColor = SidebarColor
         };
         brand.Controls.Add(new Label
         {
@@ -710,7 +609,7 @@ public sealed class AdminMainForm : Form
             WrapContents = false,
             AutoScroll = true,
             Padding = new Padding(14, 12, 8, 8),
-            BackColor = Color.Transparent
+            BackColor = SidebarColor
         };
         foreach (TabPage page in _tabs.TabPages)
         {
@@ -724,7 +623,7 @@ public sealed class AdminMainForm : Form
                 Padding = new Padding(18, 0, 8, 0),
                 FlatStyle = FlatStyle.Flat,
                 UseVisualStyleBackColor = false,
-                BackColor = Color.Transparent,
+                BackColor = SidebarColor,
                 ForeColor = AdminTheme.SidebarText,
                 Font = new Font("Segoe UI", 9.5F),
                 Cursor = Cursors.Hand,
@@ -733,7 +632,6 @@ public sealed class AdminMainForm : Form
             };
             button.FlatAppearance.BorderSize = 0;
             button.FlatAppearance.MouseOverBackColor = AdminTheme.SidebarRaised;
-            button.FlatAppearance.MouseDownBackColor = AdminTheme.SidebarRaised;
             button.Click += (_, _) => _tabs.SelectedTab = tab;
             _navigationButtons.Add(button);
             navigation.Controls.Add(button);
@@ -743,14 +641,14 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(20, 14, 12, 10),
-            BackColor = Color.Transparent
+            BackColor = AdminTheme.SidebarRaised
         };
         userPanel.Controls.Add(new Label
         {
             Text = _user.Role.ToUpperInvariant(),
             Dock = DockStyle.Top,
             Height = 20,
-            ForeColor = AdminTheme.SidebarText,
+            ForeColor = PrimaryColor,
             Font = new Font("Segoe UI", 8, FontStyle.Bold)
         });
         userPanel.Controls.Add(new Label
@@ -776,7 +674,7 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Top,
             Height = 90,
-            BackColor = AdminTheme.SurfaceRaised,
+            BackColor = SurfaceColor,
             Padding = new Padding(30, 18, 28, 16)
         };
         _currentPageTitle.Text = "Tổng quan";
@@ -819,8 +717,8 @@ public sealed class AdminMainForm : Form
         foreach (var button in _navigationButtons)
         {
             var selected = ReferenceEquals(button.Tag, _tabs.SelectedTab);
-            button.BackColor = selected ? SurfaceColor : Color.Transparent;
-            button.ForeColor = selected ? PrimaryColor : AdminTheme.SidebarText;
+            button.BackColor = selected ? PrimaryColor : SidebarColor;
+            button.ForeColor = selected ? Color.White : AdminTheme.SidebarText;
             button.Font = new Font("Segoe UI", 9.5F, selected ? FontStyle.Bold : FontStyle.Regular);
         }
     }
@@ -828,6 +726,7 @@ public sealed class AdminMainForm : Form
     private static string GetPageDescription(string title) => title switch
     {
         "Kho sách" => "Quản lý danh mục, đầu sách và các bản sao trong kho.",
+        "Thể loại sách" => "Tạo, đổi tên và xóa thể loại chưa được gán cho đầu sách.",
         "Độc giả" => "Tra cứu tài khoản, cập nhật thẻ và trạng thái độc giả.",
         "Mượn - trả" => "Thực hiện cho mượn, nhận trả và gia hạn phiếu.",
         "Tiền phạt" => "Theo dõi khoản phạt và ghi nhận thanh toán.",
@@ -886,7 +785,7 @@ public sealed class AdminMainForm : Form
 
     private void PaintMonthlyReportChart(object? sender, PaintEventArgs e)
     {
-        e.Graphics.Clear(AdminTheme.SurfaceRaised);
+        e.Graphics.Clear(SurfaceColor);
         var reports = _latestDashboard?.MonthlyReports ?? [];
         if (reports.Count == 0)
         {
@@ -1027,14 +926,11 @@ public sealed class AdminMainForm : Form
             MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    private async Task LoadBooksAsync()
-    {
-        var result = await FetchPageAsync(
-            _gridPagers[_booksGrid],
-            (page, pageSize) => _api.GetBooksPageAsync(
-                _bookSearch, page, pageSize, CancellationToken.None));
-        _booksGrid.DataSource = result.Items.ToList();
-    }
+    private async Task LoadBooksAsync() =>
+        _booksGrid.DataSource = (await _api.GetBooksAsync(_bookSearch, CancellationToken.None)).ToList();
+
+    private async Task LoadCategoriesAsync() =>
+        _categoriesGrid.DataSource = (await _api.GetCategoriesAsync(CancellationToken.None)).ToList();
 
     private async Task LoadReadersAsync()
     {
@@ -1045,11 +941,12 @@ public sealed class AdminMainForm : Form
             _ => null
         };
 
-        var result = await FetchPageAsync(
-            _gridPagers[_readersGrid],
-            (page, pageSize) => _api.GetReadersPageAsync(
-                _readerSearch, cardStatus, page, pageSize, CancellationToken.None));
-        _readersGrid.DataSource = result.Items.ToList();
+        _readersGrid.DataSource = (
+            await _api.GetReadersAsync(
+                _readerSearch,
+                cardStatus,
+                CancellationToken.None)
+        ).ToList();
     }
 
     private async void ToggleReaderActivityAsync(object? sender, DataGridViewCellEventArgs e)
@@ -1088,8 +985,10 @@ public sealed class AdminMainForm : Form
 
     private async Task SearchBooksAsync()
     {
-        _bookSearch = _bookSearchInput.Text.Trim();
-        _gridPagers[_booksGrid].Page = 1;
+        var values = Prompt("Tìm đầu sách", ("Tên, tác giả, ISBN hoặc thể loại", _bookSearch, false));
+        if (values is null)
+            return;
+        _bookSearch = values[0];
         await LoadBooksAsync();
     }
 
@@ -1099,64 +998,23 @@ public sealed class AdminMainForm : Form
         if (values is null)
             return;
         _readerSearch = values[0];
-        _gridPagers[_readersGrid].Page = 1;
         await LoadReadersAsync();
     }
 
-    private async Task LoadLoansAsync()
-    {
-        var status = _loanStatusFilter.SelectedIndex switch
-        {
-            1 => "Borrowed",
-            2 => "Returned",
-            3 => "Overdue",
-            _ => null
-        };
-        var result = await FetchPageAsync(
-            _gridPagers[_loansGrid],
-            (page, pageSize) => _api.GetLoansPageAsync(status, page, pageSize, CancellationToken.None));
-        _loansGrid.DataSource = result.Items.ToList();
-    }
+    private async Task LoadLoansAsync() =>
+        _loansGrid.DataSource = (await _api.GetLoansAsync(null, CancellationToken.None)).ToList();
 
-    private async Task LoadFinesAsync()
-    {
-        var status = _fineStatusFilter.SelectedIndex switch
-        {
-            1 => "Pending",
-            2 => "Paid",
-            _ => null
-        };
-        var result = await FetchPageAsync(
-            _gridPagers[_finesGrid],
-            (page, pageSize) => _api.GetFinesPageAsync(status, page, pageSize, CancellationToken.None));
-        _finesGrid.DataSource = result.Items.ToList();
-    }
+    private async Task LoadFinesAsync() =>
+        _finesGrid.DataSource = (await _api.GetFinesAsync(null, CancellationToken.None)).ToList();
 
-    private async Task LoadProposalsAsync()
-    {
-        var status = _proposalStatusFilter.SelectedIndex switch
-        {
-            1 => "Pending",
-            2 => "Approved",
-            3 => "Rejected",
-            _ => null
-        };
-        var result = await FetchPageAsync(
-            _gridPagers[_proposalsGrid],
-            (page, pageSize) => _api.GetProposalsPageAsync(status, page, pageSize, CancellationToken.None));
-        _proposalsGrid.DataSource = result.Items.ToList();
-    }
+    private async Task LoadProposalsAsync() =>
+        _proposalsGrid.DataSource = (await _api.GetProposalsAsync(null, CancellationToken.None)).ToList();
 
     private async Task LoadSettingsAsync() =>
         _settingsGrid.DataSource = (await _api.GetSettingsAsync(CancellationToken.None)).ToList();
 
-    private async Task LoadActivityLogsAsync()
-    {
-        var result = await FetchPageAsync(
-            _gridPagers[_logsGrid],
-            (page, pageSize) => _api.GetActivityLogsPageAsync(page, pageSize, CancellationToken.None));
-        _logsGrid.DataSource = result.Items.ToList();
-    }
+    private async Task LoadActivityLogsAsync() =>
+        _logsGrid.DataSource = (await _api.GetActivityLogsAsync(CancellationToken.None)).ToList();
 
     private async Task LoadDatabaseBackupsAsync()
     {
@@ -1241,6 +1099,51 @@ public sealed class AdminMainForm : Form
                 NullIfBlank(values[4]), year, NullIfBlank(values[6]), NullIfBlank(values[7]), copies),
             CancellationToken.None);
         await LoadBooksAsync();
+    }
+
+    private async Task CreateCategoryAsync()
+    {
+        var values = Prompt("Thêm thể loại", ("Tên thể loại", "", false));
+        if (values is null)
+            return;
+        await _api.CreateCategoryAsync(new CreateCategoryRequest(values[0]), CancellationToken.None);
+        await LoadCategoriesAsync();
+    }
+
+    private async Task RenameCategoryAsync()
+    {
+        var category = Selected<CategoryResponse>(_categoriesGrid);
+        if (category is null)
+            return;
+        var values = Prompt("Đổi tên thể loại", ("Tên thể loại", category.Name, false));
+        if (values is null)
+            return;
+        await _api.UpdateCategoryAsync(
+            category.Id,
+            new UpdateCategoryRequest(values[0]),
+            CancellationToken.None);
+        await LoadCategoriesAsync();
+    }
+
+    private async Task DeleteCategoryAsync()
+    {
+        var category = Selected<CategoryResponse>(_categoriesGrid);
+        if (category is null)
+            return;
+        if (category.BookCount > 0)
+        {
+            MessageBox.Show(this,
+                "Thể loại đang được đầu sách sử dụng. Hãy chuyển các đầu sách sang thể loại khác trước.",
+                "Không thể xóa thể loại",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+        if (MessageBox.Show(this, $"Xóa thể loại '{category.Name}'?", "Xác nhận",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            return;
+        await _api.DeleteCategoryAsync(category.Id, CancellationToken.None);
+        await LoadCategoriesAsync();
     }
 
     private async Task EditBookAsync()
@@ -1580,102 +1483,6 @@ public sealed class AdminMainForm : Form
         await LoadSettingsAsync();
     }
 
-    private void ShowApiExceptionDialog(AdminApiClient.AdminApiException exception)
-    {
-        using var dialog = new Form
-        {
-            Text = "Không thể hoàn tất thao tác",
-            StartPosition = FormStartPosition.CenterParent,
-            FormBorderStyle = FormBorderStyle.FixedDialog,
-            MaximizeBox = false,
-            MinimizeBox = false,
-            ShowInTaskbar = false,
-            ClientSize = new Size(520, exception.TraceId is null ? 145 : 205),
-            Font = Font
-        };
-
-        var message = exception.Message;
-        if (!string.IsNullOrWhiteSpace(exception.TraceId))
-        {
-            var traceLine = $"{Environment.NewLine}Mã tra cứu (TraceId): {exception.TraceId}";
-            message = message.Replace(traceLine, "");
-        }
-
-        var messageLabel = new Label
-        {
-            Text = message,
-            Location = new Point(18, 18),
-            Size = new Size(480, 48),
-            AutoEllipsis = true
-        };
-
-        dialog.Controls.Add(messageLabel);
-
-        var closeButton = new Button
-        {
-            Text = "Đóng",
-            DialogResult = DialogResult.OK,
-            Size = new Size(90, 32),
-            Location = new Point(408, dialog.ClientSize.Height - 48),
-            Anchor = AnchorStyles.Bottom | AnchorStyles.Right
-        };
-
-        dialog.Controls.Add(closeButton);
-        dialog.AcceptButton = closeButton;
-        dialog.CancelButton = closeButton;
-
-        if (!string.IsNullOrWhiteSpace(exception.TraceId))
-        {
-            var traceLabel = new Label
-            {
-                Text = "MÃ TRA CỨU (TRACE ID)",
-                Location = new Point(18, 83),
-                Size = new Size(480, 22),
-                ForeColor = AdminTheme.Muted
-            };
-
-            var traceText = new TextBox
-            {
-                Text = exception.TraceId,
-                ReadOnly = true,
-                Location = new Point(18, 108),
-                Size = new Size(365, 28),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-            };
-
-            var copyButton = new Button
-            {
-                Text = "Sao chép",
-                Location = new Point(393, 106),
-                Size = new Size(105, 32),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right
-            };
-
-            copyButton.Click += (_, _) =>
-            {
-                try
-                {
-                    Clipboard.SetText(exception.TraceId);
-                    copyButton.Text = "Đã sao chép";
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show(
-                        dialog,
-                        "Không thể sao chép TraceId. Hãy thử lại.",
-                        "Lỗi sao chép",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
-                }
-            };
-
-            dialog.Controls.Add(traceLabel);
-            dialog.Controls.Add(traceText);
-            dialog.Controls.Add(copyButton);
-        }
-
-        dialog.ShowDialog(this);
-    }
     private async Task RunAsync(Func<Task> action)
     {
         try
@@ -1684,7 +1491,8 @@ public sealed class AdminMainForm : Form
         }
         catch (AdminApiClient.AdminApiException exception)
         {
-            ShowApiExceptionDialog(exception);
+            MessageBox.Show(this, exception.Message, "Không thể hoàn tất thao tác",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
         catch (HttpRequestException exception)
         {
@@ -1714,46 +1522,7 @@ public sealed class AdminMainForm : Form
         grid.DefaultCellStyle.Padding = new Padding(8, 2, 4, 2);
         grid.DefaultCellStyle.NullValue = "—";
         grid.DataBindingComplete += (_, _) => FormatGridColumns(grid);
-        grid.CellToolTipTextNeeded += (_, e) =>
-        {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0)
-                return;
-
-            e.ToolTipText = grid.Rows[e.RowIndex].Cells[e.ColumnIndex].FormattedValue?.ToString() ?? "";
-        };
         return grid;
-    }
-
-    private static ComboBox CreateStatusFilter()
-    {
-        var filter = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = 165,
-            Height = 34,
-            Font = new Font("Segoe UI", 9.5F),
-            Margin = new Padding(12, 3, 0, 3),
-            BackColor = AdminTheme.SurfaceRaised,
-            ForeColor = TextColor,
-            FlatStyle = FlatStyle.Flat
-        };
-        return filter;
-    }
-
-    private async Task<PagedResponse<T>> FetchPageAsync<T>(
-        GridPager pager,
-        Func<int, int, Task<PagedResponse<T>>> fetch)
-    {
-        var result = await fetch(pager.Page, pager.PageSize);
-        var totalPages = Math.Max(1, (int)Math.Ceiling(result.TotalCount / (double)pager.PageSize));
-        if (pager.Page > totalPages)
-        {
-            pager.Page = totalPages;
-            result = await fetch(pager.Page, pager.PageSize);
-        }
-
-        pager.SetTotalCount(result.TotalCount);
-        return result;
     }
 
     private static Button CreateActionButton(string title, bool destructive = false)
@@ -1791,57 +1560,6 @@ public sealed class AdminMainForm : Form
         title.Contains("Ngừng", StringComparison.OrdinalIgnoreCase)
         || title.Contains("Khóa", StringComparison.OrdinalIgnoreCase)
         || title.Contains("Từ chối", StringComparison.OrdinalIgnoreCase);
-
-    private sealed class GridPager
-    {
-        public const int DefaultPageSize = 50;
-
-        public int Page { get; set; } = 1;
-        public int PageSize => DefaultPageSize;
-        public int TotalPages { get; private set; } = 1;
-        public Panel Panel { get; } = new()
-        {
-            Dock = DockStyle.Bottom,
-            Height = 44,
-            BackColor = AdminTheme.Surface
-        };
-        public Button Previous { get; } = CreateActionButton("Trang trước");
-        public Button Next { get; } = CreateActionButton("Trang sau");
-        private Label Summary { get; } = new()
-        {
-            AutoSize = true,
-            ForeColor = AdminTheme.Muted,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Margin = new Padding(8, 12, 8, 0)
-        };
-
-        public GridPager()
-        {
-            var controls = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.RightToLeft,
-                WrapContents = false,
-                Padding = new Padding(4, 1, 4, 1),
-                BackColor = AdminTheme.Surface
-            };
-            Previous.MinimumSize = new Size(92, 36);
-            Next.MinimumSize = new Size(92, 36);
-            controls.Controls.Add(Next);
-            controls.Controls.Add(Previous);
-            controls.Controls.Add(Summary);
-            Panel.Controls.Add(controls);
-            SetTotalCount(0);
-        }
-
-        public void SetTotalCount(int totalCount)
-        {
-            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
-            Summary.Text = $"Trang {Page} / {TotalPages}  |  {totalCount:N0} kết quả";
-            Previous.Enabled = Page > 1;
-            Next.Enabled = Page < TotalPages;
-        }
-    }
 
     private static void FormatGridColumns(DataGridView grid)
     {

@@ -149,28 +149,6 @@ public sealed class AdminServiceReportingTests
     }
 
     [Fact]
-    public async Task GetLoansPageAsync_filters_overdue_loans_and_preserves_total_count()
-    {
-        await using var database = TestDatabase.Create();
-        var (_, reader) = await database.AddReaderAsync();
-        var (_, _, copies) = await database.AddBookAsync(
-            copyCount: 2, copyStatus: RecordStatuses.OnLoan);
-        var staff = await database.AddLibrarianAsync();
-        await database.AddLoanAsync(
-            reader, copies[0], staff.Librarian,
-            dueDate: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1));
-        await database.AddLoanAsync(
-            reader, copies[1], staff.Librarian,
-            dueDate: DateOnly.FromDateTime(DateTime.UtcNow).AddDays(5));
-
-        var page = await database.CreateAdminService()
-            .GetLoansPageAsync("Overdue", 1, 1, CancellationToken.None);
-
-        Assert.Equal(1, page.TotalCount);
-        Assert.Equal("Borrowed", Assert.Single(page.Items).Status);
-    }
-
-    [Fact]
     public async Task GetFinesAsync_filters_status_and_does_not_track_entities()
     {
         await using var database = TestDatabase.Create();
