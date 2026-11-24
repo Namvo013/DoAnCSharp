@@ -59,7 +59,7 @@ public sealed class AdminMainForm : Form
     private readonly Dictionary<string, Label> _dashboardValues = [];
     private readonly Label _dashboardSummary = new();
     private readonly Label _popularBooks = new();
-    private readonly Panel _monthlyReportChart = new() { BackColor = SurfaceColor };
+    private readonly Panel _monthlyReportChart = new() { BackColor = AdminTheme.SurfaceRaised };
     private readonly Label _backupSummary = new();
     private readonly Label _currentPageTitle = new();
     private readonly List<Button> _navigationButtons = [];
@@ -545,8 +545,9 @@ public sealed class AdminMainForm : Form
             Dock = DockStyle.Fill,
             BackColor = SurfaceColor,
             Margin = new Padding(0, 0, 14, 14),
-            Padding = Padding.Empty
+            Padding = new Padding(1)
         };
+        AdminTheme.StyleSurfaceCard(card, metricColor);
         var accent = new Panel
         {
             Location = new Point(18, 18),
@@ -559,7 +560,7 @@ public sealed class AdminMainForm : Form
             ColumnCount = 1,
             RowCount = 4,
             Padding = new Padding(32, 13, 16, 14),
-            BackColor = SurfaceColor
+            BackColor = Color.Transparent
         };
         content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         content.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
@@ -623,11 +624,13 @@ public sealed class AdminMainForm : Form
             Padding = new Padding(20),
             Margin = new Padding(0, 0, 14, 0)
         };
+        AdminTheme.StyleSurfaceCard(card, AdminTheme.Accent);
         var heading = new Label
         {
             Text = title,
             Dock = DockStyle.Top,
             Height = 28,
+            BackColor = Color.Transparent,
             AutoEllipsis = true,
             ForeColor = PrimaryColor,
             Font = new Font("Segoe UI", 8.5F, FontStyle.Bold)
@@ -665,12 +668,13 @@ public sealed class AdminMainForm : Form
             BackColor = SidebarColor,
             Padding = new Padding(0)
         };
+        AdminTheme.StyleSidebarPanel(sidebar);
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
-            BackColor = SidebarColor
+            BackColor = Color.Transparent
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -680,7 +684,7 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(22, 20, 12, 10),
-            BackColor = SidebarColor
+            BackColor = Color.Transparent
         };
         brand.Controls.Add(new Label
         {
@@ -706,7 +710,7 @@ public sealed class AdminMainForm : Form
             WrapContents = false,
             AutoScroll = true,
             Padding = new Padding(14, 12, 8, 8),
-            BackColor = SidebarColor
+            BackColor = Color.Transparent
         };
         foreach (TabPage page in _tabs.TabPages)
         {
@@ -720,7 +724,7 @@ public sealed class AdminMainForm : Form
                 Padding = new Padding(18, 0, 8, 0),
                 FlatStyle = FlatStyle.Flat,
                 UseVisualStyleBackColor = false,
-                BackColor = SidebarColor,
+                BackColor = Color.Transparent,
                 ForeColor = AdminTheme.SidebarText,
                 Font = new Font("Segoe UI", 9.5F),
                 Cursor = Cursors.Hand,
@@ -729,6 +733,7 @@ public sealed class AdminMainForm : Form
             };
             button.FlatAppearance.BorderSize = 0;
             button.FlatAppearance.MouseOverBackColor = AdminTheme.SidebarRaised;
+            button.FlatAppearance.MouseDownBackColor = AdminTheme.SidebarRaised;
             button.Click += (_, _) => _tabs.SelectedTab = tab;
             _navigationButtons.Add(button);
             navigation.Controls.Add(button);
@@ -738,14 +743,14 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(20, 14, 12, 10),
-            BackColor = AdminTheme.SidebarRaised
+            BackColor = Color.Transparent
         };
         userPanel.Controls.Add(new Label
         {
             Text = _user.Role.ToUpperInvariant(),
             Dock = DockStyle.Top,
             Height = 20,
-            ForeColor = PrimaryColor,
+            ForeColor = AdminTheme.SidebarText,
             Font = new Font("Segoe UI", 8, FontStyle.Bold)
         });
         userPanel.Controls.Add(new Label
@@ -771,7 +776,7 @@ public sealed class AdminMainForm : Form
         {
             Dock = DockStyle.Top,
             Height = 90,
-            BackColor = SurfaceColor,
+            BackColor = AdminTheme.SurfaceRaised,
             Padding = new Padding(30, 18, 28, 16)
         };
         _currentPageTitle.Text = "Tổng quan";
@@ -814,8 +819,8 @@ public sealed class AdminMainForm : Form
         foreach (var button in _navigationButtons)
         {
             var selected = ReferenceEquals(button.Tag, _tabs.SelectedTab);
-            button.BackColor = selected ? PrimaryColor : SidebarColor;
-            button.ForeColor = selected ? Color.White : AdminTheme.SidebarText;
+            button.BackColor = selected ? SurfaceColor : Color.Transparent;
+            button.ForeColor = selected ? PrimaryColor : AdminTheme.SidebarText;
             button.Font = new Font("Segoe UI", 9.5F, selected ? FontStyle.Bold : FontStyle.Regular);
         }
     }
@@ -881,7 +886,7 @@ public sealed class AdminMainForm : Form
 
     private void PaintMonthlyReportChart(object? sender, PaintEventArgs e)
     {
-        e.Graphics.Clear(SurfaceColor);
+        e.Graphics.Clear(AdminTheme.SurfaceRaised);
         var reports = _latestDashboard?.MonthlyReports ?? [];
         if (reports.Count == 0)
         {
