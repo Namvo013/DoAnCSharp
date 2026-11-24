@@ -18,19 +18,10 @@ builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
-        {
-            var errors = context.ModelState
-                .Where(entry => entry.Value?.Errors.Count > 0)
-                .ToDictionary(
-                    entry => entry.Key,
-                    entry => entry.Value!.Errors
-                        .Select(_ => "Giá trị không hợp lệ hoặc đang bị thiếu.")
-                        .ToArray());
-            return new BadRequestObjectResult(ApiResponse<object?>.Failure(
-                "VALIDATION_ERROR",
-                "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra các trường được báo lỗi.",
-                errors));
-        };
+            new BadRequestObjectResult(
+                ApiErrorResponseFactory.CreateValidationResponse(
+                    context.ModelState,
+                    context.HttpContext));
     })
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -121,18 +112,12 @@ if (generatedDevelopmentKey)
 app.UseExceptionHandler();
 app.UseStatusCodePages(statusCodeContext =>
 {
-    var response = statusCodeContext.HttpContext.Response;
-    var (code, message) = response.StatusCode switch
-    {
-        StatusCodes.Status401Unauthorized => ("UNAUTHORIZED", "Vui lòng đăng nhập để tiếp tục."),
-        StatusCodes.Status403Forbidden => ("FORBIDDEN", "Tài khoản không có quyền thực hiện thao tác này."),
-        StatusCodes.Status404NotFound => ("NOT_FOUND", "Không tìm thấy tài nguyên được yêu cầu."),
-        StatusCodes.Status405MethodNotAllowed => ("METHOD_NOT_ALLOWED", "Phương thức yêu cầu không được hỗ trợ."),
-        _ => ("REQUEST_FAILED", "Yêu cầu không thể hoàn tất.")
-    };
-    return response.WriteAsJsonAsync(
-        ApiResponse<object?>.Failure(code, message),
-        statusCodeContext.HttpContext.RequestAborted);
+    var httpContext = statusCodeContext.HttpContext;
+    var apiResponse = ApiErrorResponseFactory.CreateStatusCodeResponse(httpContext);
+
+    return httpContext.Response.WriteAsJsonAsync(
+        apiResponse,
+        httpContext.RequestAborted);
 });
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();

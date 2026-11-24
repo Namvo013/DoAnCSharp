@@ -18,6 +18,7 @@ public sealed class ApiExceptionHandlerTests
         string expectedCode)
     {
         var context = new DefaultHttpContext();
+        context.TraceIdentifier = "test-trace-id";
         await using var body = new MemoryStream();
         context.Response.Body = body;
         var exception = (Exception)Activator.CreateInstance(exceptionType, "test failure")!;
@@ -31,12 +32,14 @@ public sealed class ApiExceptionHandlerTests
         using var document = await JsonDocument.ParseAsync(body);
         Assert.Equal(expectedCode, document.RootElement.GetProperty("code").GetString());
         Assert.False(document.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("test-trace-id", document.RootElement.GetProperty("traceId").GetString());
     }
 
     [Fact]
     public async Task TryHandleAsync_returns_generic_message_for_unexpected_exception()
     {
         var context = new DefaultHttpContext();
+        context.TraceIdentifier = "test-trace-id";
         await using var body = new MemoryStream();
         context.Response.Body = body;
         var handler = new ApiExceptionHandler(NullLogger<ApiExceptionHandler>.Instance);
@@ -52,6 +55,7 @@ public sealed class ApiExceptionHandlerTests
         using var document = await JsonDocument.ParseAsync(body);
         var message = document.RootElement.GetProperty("message").GetString();
         Assert.DoesNotContain("sensitive internal detail", message);
+        Assert.Equal("test-trace-id", document.RootElement.GetProperty("traceId").GetString());
     }
 
     [Fact]
