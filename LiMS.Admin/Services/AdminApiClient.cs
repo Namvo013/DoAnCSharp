@@ -203,8 +203,12 @@ public sealed class AdminApiClient : IDisposable
             request,
             cancellationToken);
 
-    public Task<IReadOnlyList<ActivityLogResponse>> GetActivityLogsAsync(CancellationToken cancellationToken) =>
-        GetAsync<IReadOnlyList<ActivityLogResponse>>("api/admin/activity-logs?page=1&pageSize=100", cancellationToken);
+    public Task<IReadOnlyList<ActivityLogResponse>> GetActivityLogsAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken) =>
+        GetAsync<IReadOnlyList<ActivityLogResponse>>(
+            $"api/admin/activity-logs?page={page}&pageSize={pageSize}", cancellationToken);
 
     public Task<DatabaseBackupStatusResponse> GetDatabaseBackupsAsync(CancellationToken cancellationToken) =>
         GetAsync<DatabaseBackupStatusResponse>("api/admin/database-backups", cancellationToken);

@@ -38,6 +38,10 @@ public sealed class AdminMainForm : Form
     private readonly DataGridView _databaseBackupsGrid = CreateGrid();
     private string _bookSearch = "";
     private string _readerSearch = "";
+    private const int ActivityLogPageSize = 100;
+    private int _activityLogPage = 1;
+    private int _activityLogCount;
+    private readonly Label _activityLogPageInfo = new();
     private readonly ComboBox _readerStatusFilter = new()
     {
         DropDownStyle = ComboBoxStyle.DropDownList,
@@ -289,8 +293,27 @@ public sealed class AdminMainForm : Form
         _tabs.TabPages.Add(page);
     }
 
-    private void AddActivityLogsPage() =>
-        _tabs.TabPages.Add(CreateGridPage("Nhật ký hoạt động", _logsGrid, LoadActivityLogsAsync));
+    private void AddActivityLogsPage()
+    {
+        var page = CreateGridPage(
+            "Nhật ký hoạt động",
+            _logsGrid,
+            LoadActivityLogsAsync,
+            ("Trang trước", PreviousActivityLogPageAsync),
+            ("Trang sau", NextActivityLogPageAsync));
+
+        var layout = page.Controls.OfType<TableLayoutPanel>().First();
+        if (layout.GetControlFromPosition(0, 1) is FlowLayoutPanel toolbar)
+        {
+            _activityLogPageInfo.AutoSize = true;
+            _activityLogPageInfo.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            _activityLogPageInfo.ForeColor = TextColor;
+            _activityLogPageInfo.Margin = new Padding(12, 10, 0, 0);
+            toolbar.Controls.Add(_activityLogPageInfo);
+        }
+
+        _tabs.TabPages.Add(page);
+    }
 
     private void AddDatabaseBackupsPage()
     {
@@ -1102,8 +1125,44 @@ public sealed class AdminMainForm : Form
     private async Task LoadSettingsAsync() =>
         _settingsGrid.DataSource = (await _api.GetSettingsAsync(CancellationToken.None)).ToList();
 
-    private async Task LoadActivityLogsAsync() =>
-        _logsGrid.DataSource = (await _api.GetActivityLogsAsync(CancellationToken.None)).ToList();
+    private async Task LoadActivityLogsAsync()
+    {
+        var logs = (await _api.GetActivityLogsAsync(
+            _activityLogPage,
+            ActivityLogPageSize,
+            CancellationToken.None)).ToList();
+        _activityLogCount = logs.Count;
+        _logsGrid.DataSource = logs;
+        var isLastPage = logs.Count < ActivityLogPageSize;
+        _activityLogPageInfo.Text =
+            $"Trang {_activityLogPage} · {logs.Count} bản ghi{(isLastPage ? " (trang cuối)" : "")}";
+    }
+
+    private async Task PreviousActivityLogPageAsync()
+    {
+        if (_activityLogPage <= 1)
+        {
+            MessageBox.Show(this, "Đang ở trang đầu tiên.", "Nhật ký hoạt động",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        _activityLogPage--;
+        await LoadActivityLogsAsync();
+    }
+
+    private async Task NextActivityLogPageAsync()
+    {
+        _activityLogPage++;
+        await LoadActivityLogsAsync();
+        if (_activityLogCount == 0 && _activityLogPage > 1)
+        {
+            _activityLogPage--;
+            await LoadActivityLogsAsync();
+            MessageBox.Show(this, "Đã ở trang cuối cùng.", "Nhật ký hoạt động",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
 
     private async Task LoadDatabaseBackupsAsync()
     {
