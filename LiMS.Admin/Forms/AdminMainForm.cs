@@ -187,6 +187,7 @@ public sealed class AdminMainForm : Form
             ("Thêm thể loại", CreateCategoryAsync),
             ("Đổi tên", RenameCategoryAsync),
             ("Xóa thể loại trống", DeleteCategoryAsync));
+        AttachGridFilter(page, _categoriesGrid, "Tên thể loại");
         _tabs.TabPages.Add(page);
     }
 
@@ -250,6 +251,7 @@ public sealed class AdminMainForm : Form
             ("Cho mượn / quét barcode", CheckoutAsync),
             ("Nhận trả / quét barcode", ReturnAsync),
             ("Gia hạn phiếu chọn", RenewAsync));
+        AttachGridFilter(page, _loansGrid, "Độc giả, sách, trạng thái");
         _tabs.TabPages.Add(page);
     }
 
@@ -260,6 +262,7 @@ public sealed class AdminMainForm : Form
             _finesGrid,
             LoadFinesAsync,
             ("Ghi nhận thanh toán", CollectFineAsync));
+        AttachGridFilter(page, _finesGrid, "Độc giả, trạng thái");
         _tabs.TabPages.Add(page);
     }
 
@@ -271,16 +274,19 @@ public sealed class AdminMainForm : Form
             LoadProposalsAsync,
             ("Duyệt đề xuất", () => ReviewProposalAsync("Approved")),
             ("Từ chối đề xuất", () => ReviewProposalAsync("Rejected")));
+        AttachGridFilter(page, _proposalsGrid, "Tên sách, độc giả, trạng thái");
         _tabs.TabPages.Add(page);
     }
 
     private void AddSettingsPage()
     {
-        _tabs.TabPages.Add(CreateGridPage(
+        var page = CreateGridPage(
             "Cấu hình",
             _settingsGrid,
             LoadSettingsAsync,
-            ("Sửa cấu hình", UpdateSettingAsync)));
+            ("Sửa cấu hình", UpdateSettingAsync));
+        AttachGridFilter(page, _settingsGrid, "Khóa cấu hình, mô tả");
+        _tabs.TabPages.Add(page);
     }
 
     private void AddActivityLogsPage() =>
@@ -364,6 +370,63 @@ public sealed class AdminMainForm : Form
         layout.Controls.Add(gridContainer, 0, 2);
         page.Controls.Add(layout);
         return page;
+    }
+
+    private void AttachGridFilter(TabPage page, DataGridView grid, string placeholder)
+    {
+        var layout = page.Controls.OfType<TableLayoutPanel>().FirstOrDefault();
+        if (layout?.GetControlFromPosition(0, 1) is not FlowLayoutPanel toolbar)
+            return;
+
+        var label = new Label
+        {
+            Text = "Tìm:",
+            AutoSize = true,
+            Font = new Font("Segoe UI", 9.5F),
+            ForeColor = TextColor,
+            Margin = new Padding(12, 10, 5, 0)
+        };
+        var search = new TextBox
+        {
+            Width = 230,
+            PlaceholderText = placeholder,
+            Margin = new Padding(0, 6, 6, 0)
+        };
+        AdminTheme.StyleTextBox(search);
+
+        void ApplyFilter()
+        {
+            var term = search.Text.Trim();
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (row.IsNewRow)
+                    continue;
+                if (term.Length == 0)
+                {
+                    row.Visible = true;
+                    continue;
+                }
+
+                var match = false;
+                foreach (DataGridViewCell cell in row.Cells)
+                {
+                    if (cell.FormattedValue?.ToString() is { } text
+                        && text.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    {
+                        match = true;
+                        break;
+                    }
+                }
+
+                row.Visible = match;
+            }
+        }
+
+        search.TextChanged += (_, _) => ApplyFilter();
+        grid.DataBindingComplete += (_, _) => ApplyFilter();
+
+        toolbar.Controls.Add(label);
+        toolbar.Controls.Add(search);
     }
 
     private TableLayoutPanel CreatePageLayout()
