@@ -225,6 +225,16 @@ public sealed class AdminApiClient : IDisposable
             request,
             cancellationToken);
 
+    public async Task<byte[]?> GetBookCoverAsync(int bookId, CancellationToken cancellationToken)
+    {
+        using var response = await _client.GetAsync($"api/library/books/{bookId}/cover", cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+        if (!response.IsSuccessStatusCode)
+            throw await CreateExceptionAsync(response, cancellationToken);
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
     private async Task<TResponse> GetAsync<TResponse>(string uri, CancellationToken cancellationToken)
     {
         using var response = await _client.GetAsync(uri, cancellationToken);

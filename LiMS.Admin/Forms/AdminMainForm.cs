@@ -175,6 +175,7 @@ public sealed class AdminMainForm : Form
             ("Tìm đầu sách", SearchBooksAsync),
             ("Thêm đầu sách", CreateBookAsync),
             ("Sửa đầu sách", EditBookAsync),
+            ("Xem ảnh bìa", PreviewBookCoverAsync),
             ("Thêm/cập nhật ảnh bìa", UploadBookCoverAsync),
             ("Ngừng kinh doanh", DeactivateBookAsync),
             ("Quản lý bản sao", ManageCopiesAsync),
@@ -1383,6 +1384,61 @@ public sealed class AdminMainForm : Form
         await LoadBooksAsync();
         MessageBox.Show(this, "Đã cập nhật đầu sách.", "Thành công",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private async Task PreviewBookCoverAsync()
+    {
+        var book = Selected<BookResponse>(_booksGrid);
+        if (book is null)
+            return;
+
+        var bytes = await _api.GetBookCoverAsync(book.Id, CancellationToken.None);
+        if (bytes is null || bytes.Length == 0)
+        {
+            MessageBox.Show(this, $"Đầu sách “{book.Title}” chưa có ảnh bìa.", "Ảnh bìa",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        using var stream = new MemoryStream(bytes);
+        using var image = Image.FromStream(stream);
+
+        using var dialog = new Form
+        {
+            Text = $"Ảnh bìa - {book.Title}",
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ShowInTaskbar = false,
+            ClientSize = new Size(480, 660),
+            BackColor = CanvasColor,
+            Font = new Font("Segoe UI", 9.5F)
+        };
+        AdminTheme.StyleForm(dialog);
+        var picture = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Image = image,
+            BackColor = AdminTheme.SurfaceRaised
+        };
+        var buttons = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 48,
+            FlowDirection = FlowDirection.RightToLeft,
+            BackColor = CanvasColor,
+            Padding = new Padding(8, 5, 8, 4)
+        };
+        var close = CreateActionButton("Đóng");
+        close.DialogResult = DialogResult.OK;
+        buttons.Controls.Add(close);
+        dialog.Controls.Add(picture);
+        dialog.Controls.Add(buttons);
+        dialog.AcceptButton = close;
+        dialog.CancelButton = close;
+        dialog.ShowDialog(this);
     }
 
     private async Task UploadBookCoverAsync()
