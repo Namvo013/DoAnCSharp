@@ -1324,8 +1324,14 @@ public sealed class AdminMainForm : Form
             return;
         var copies = (await _api.GetCopiesAsync(book.Id, CancellationToken.None)).ToList();
         using var form = new CopyManagementForm(book.Title, copies);
-        if (form.ShowDialog(this) != DialogResult.OK || form.SelectedCopy is null)
+        if (form.ShowDialog(this) != DialogResult.OK)
             return;
+        if (form.SelectedCopy is null)
+        {
+            MessageBox.Show(this, "Vui lòng chọn một bản sao trong danh sách.",
+                "Chưa chọn bản sao", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
         var values = Prompt("Trạng thái bản sao",
             new PromptField("Barcode", form.SelectedCopy.Barcode, false),
             new PromptField("Trạng thái", form.SelectedCopy.Status, false,
@@ -1875,8 +1881,15 @@ public sealed class AdminMainForm : Form
         }
     }
 
-    private static T? Selected<T>(DataGridView grid) where T : class =>
-        grid.CurrentRow?.DataBoundItem as T;
+    private T? Selected<T>(DataGridView grid) where T : class
+    {
+        if (grid.CurrentRow?.DataBoundItem is T item)
+            return item;
+
+        MessageBox.Show(this, "Vui lòng chọn một dòng trong danh sách trước khi thao tác.",
+            "Chưa chọn dòng", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        return null;
+    }
 
     private readonly record struct PromptField(
         string Label,
@@ -2015,6 +2028,9 @@ public sealed class AdminMainForm : Form
     {
         private readonly DataGridView _grid = CreateGrid();
         public BookCopyResponse? SelectedCopy => Selected<BookCopyResponse>(_grid);
+
+        private static T? Selected<T>(DataGridView grid) where T : class =>
+            grid.CurrentRow?.DataBoundItem as T;
 
         public CopyManagementForm(string bookTitle, IReadOnlyList<BookCopyResponse> copies)
         {
