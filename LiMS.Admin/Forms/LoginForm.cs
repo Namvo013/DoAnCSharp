@@ -5,7 +5,11 @@ namespace LiMS.Admin.Forms;
 
 public sealed class LoginForm : Form
 {
-    private readonly TextBox _apiAddress = new() { Text = "http://localhost:5107" };
+    private static readonly string SettingsDirectory =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LiMS");
+    private static readonly string SettingsPath = Path.Combine(SettingsDirectory, "admin-settings.json");
+
+    private readonly TextBox _apiAddress = new() { Text = LoadSavedApiAddress() };
     private readonly TextBox _username = new();
     private readonly TextBox _password = new() { UseSystemPasswordChar = true };
     private readonly Button _signIn = new() { Text = "Đăng nhập", AutoSize = true };
@@ -108,6 +112,20 @@ public sealed class LoginForm : Form
         fields.Controls.Add(CreateField("Tài khoản", _username, 72));
         fields.Controls.Add(CreateField("Mật khẩu", _password, 144));
 
+        var showPassword = new CheckBox
+        {
+            Text = "Hiện",
+            Location = new Point(330, 144),
+            Size = new Size(80, 22),
+            ForeColor = AdminTheme.Muted,
+            BackColor = Color.Transparent,
+            Font = new Font("Segoe UI", 9F),
+            Cursor = Cursors.Hand
+        };
+        showPassword.CheckedChanged += (_, _) =>
+            _password.UseSystemPasswordChar = !showPassword.Checked;
+        fields.Controls.Add(showPassword);
+
         _signIn.Location = new Point(50, 380);
         _signIn.Size = new Size(410, 48);
         _signIn.Text = "Đăng nhập vào hệ thống";
@@ -188,6 +206,38 @@ public sealed class LoginForm : Form
         return field;
     }
 
+    private static string LoadSavedApiAddress()
+    {
+        try
+        {
+            if (File.Exists(SettingsPath))
+            {
+                var saved = File.ReadAllText(SettingsPath).Trim();
+                if (!string.IsNullOrWhiteSpace(saved))
+                    return saved;
+            }
+        }
+        catch
+        {
+            // Bỏ qua lỗi đọc cấu hình, dùng địa chỉ mặc định.
+        }
+
+        return "http://localhost:5107";
+    }
+
+    private static void SaveApiAddress(string address)
+    {
+        try
+        {
+            Directory.CreateDirectory(SettingsDirectory);
+            File.WriteAllText(SettingsPath, address);
+        }
+        catch
+        {
+            // Không lưu được địa chỉ API cũng không ảnh hưởng việc đăng nhập.
+        }
+    }
+
     private async Task SignInAsync()
     {
         _error.Text = "";
@@ -213,6 +263,7 @@ public sealed class LoginForm : Form
                 return;
             }
 
+            SaveApiAddress(address.ToString());
             Hide();
             using (var mainForm = new AdminMainForm(client, user))
                 mainForm.ShowDialog(this);

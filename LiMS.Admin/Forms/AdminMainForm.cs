@@ -420,7 +420,20 @@ public sealed class AdminMainForm : Form
             {
                 var button = CreateActionButton(pageAction.Title);
                 button.Margin = new Padding(8, 0, 0, 0);
-                button.Click += async (_, _) => await RunAsync(pageAction.Action);
+                button.Click += async (_, _) =>
+                {
+                    if (!button.Enabled)
+                        return;
+                    button.Enabled = false;
+                    try
+                    {
+                        await RunAsync(pageAction.Action);
+                    }
+                    finally
+                    {
+                        button.Enabled = true;
+                    }
+                };
                 actionPanel.Controls.Add(button);
             }
             header.Controls.Add(actionPanel);
@@ -752,7 +765,20 @@ public sealed class AdminMainForm : Form
         {
             var button = CreateActionButton(title, IsDestructiveAction(title));
             button.Margin = new Padding(0, 0, 9, 0);
-            button.Click += async (_, _) => await RunAsync(action);
+            button.Click += async (_, _) =>
+            {
+                if (!button.Enabled)
+                    return;
+                button.Enabled = false;
+                try
+                {
+                    await RunAsync(action);
+                }
+                finally
+                {
+                    button.Enabled = true;
+                }
+            };
             toolbar.Controls.Add(button);
         }
 
@@ -1081,24 +1107,48 @@ public sealed class AdminMainForm : Form
 
     private async Task CreateBookAsync()
     {
+        var categories = (await _api.GetCategoriesAsync(CancellationToken.None))
+            .Select(category => category.Name)
+            .ToArray();
         var values = Prompt("Thêm đầu sách",
-            ("Danh mục", "Chưa phân loại", false),
-            ("Tên sách", "", false),
-            ("Tác giả", "", false),
-            ("ISBN", "", false),
-            ("Nhà xuất bản", "", false),
-            ("Năm xuất bản", "", false),
-            ("Vị trí kệ", "", false),
-            ("Mô tả", "", false),
-            ("Số bản sao ban đầu", "0", false));
-        if (values is null || !TryParseInt(values[8], out var copies) || !TryParseYear(values[5], out var year))
+            new PromptField("Danh mục", categories.FirstOrDefault() ?? "Chưa phân loại", false, categories),
+            new PromptField("Tên sách", "", false),
+            new PromptField("Tác giả", "", false),
+            new PromptField("ISBN", "", false),
+            new PromptField("Nhà xuất bản", "", false),
+            new PromptField("Năm xuất bản", "", false),
+            new PromptField("Vị trí kệ", "", false),
+            new PromptField("Mô tả", "", false),
+            new PromptField("Số bản sao ban đầu", "0", false));
+        if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]) || string.IsNullOrWhiteSpace(values[1])
+            || string.IsNullOrWhiteSpace(values[2]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập Danh mục, Tên sách và Tác giả.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!TryParseInt(values[8], out var copies) || copies < 0)
+        {
+            MessageBox.Show(this, "Số bản sao ban đầu phải là số nguyên không âm.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!TryParseYear(values[5], out var year))
+        {
+            MessageBox.Show(this, "Năm xuất bản không hợp lệ.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
         await _api.CreateBookAsync(
             new CreateBookRequest(values[0], values[1], values[2], NullIfBlank(values[3]),
                 NullIfBlank(values[4]), year, NullIfBlank(values[6]), NullIfBlank(values[7]), copies),
             CancellationToken.None);
         await LoadBooksAsync();
+        MessageBox.Show(this, "Đã thêm đầu sách.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task CreateCategoryAsync()
@@ -1106,8 +1156,16 @@ public sealed class AdminMainForm : Form
         var values = Prompt("Thêm thể loại", ("Tên thể loại", "", false));
         if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập tên thể loại.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
         await _api.CreateCategoryAsync(new CreateCategoryRequest(values[0]), CancellationToken.None);
         await LoadCategoriesAsync();
+        MessageBox.Show(this, $"Đã thêm thể loại '{values[0]}'.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task RenameCategoryAsync()
@@ -1118,11 +1176,19 @@ public sealed class AdminMainForm : Form
         var values = Prompt("Đổi tên thể loại", ("Tên thể loại", category.Name, false));
         if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập tên thể loại.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
         await _api.UpdateCategoryAsync(
             category.Id,
             new UpdateCategoryRequest(values[0]),
             CancellationToken.None);
         await LoadCategoriesAsync();
+        MessageBox.Show(this, "Đã đổi tên thể loại.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task DeleteCategoryAsync()
@@ -1144,6 +1210,8 @@ public sealed class AdminMainForm : Form
             return;
         await _api.DeleteCategoryAsync(category.Id, CancellationToken.None);
         await LoadCategoriesAsync();
+        MessageBox.Show(this, $"Đã xóa thể loại '{category.Name}'.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task EditBookAsync()
@@ -1151,18 +1219,39 @@ public sealed class AdminMainForm : Form
         var book = Selected<BookResponse>(_booksGrid);
         if (book is null)
             return;
+        var categories = (await _api.GetCategoriesAsync(CancellationToken.None))
+            .Select(category => category.Name)
+            .ToArray();
         var values = Prompt("Cập nhật đầu sách",
-            ("Danh mục", book.Category, false),
-            ("Tên sách", book.Title, false),
-            ("Tác giả", book.Author, false),
-            ("ISBN", book.Isbn ?? "", false),
-            ("Nhà xuất bản", book.Publisher ?? "", false),
-            ("Năm xuất bản", book.PublishedYear?.ToString() ?? "", false),
-            ("Vị trí kệ", book.ShelfLocation ?? "", false),
-            ("Mô tả", book.Description ?? "", false),
-            ("Đang kinh doanh (true/false)", "true", false));
-        if (values is null || !TryParseYear(values[5], out var year) || !bool.TryParse(values[8], out var isActive))
+            new PromptField("Danh mục", book.Category, false, categories),
+            new PromptField("Tên sách", book.Title, false),
+            new PromptField("Tác giả", book.Author, false),
+            new PromptField("ISBN", book.Isbn ?? "", false),
+            new PromptField("Nhà xuất bản", book.Publisher ?? "", false),
+            new PromptField("Năm xuất bản", book.PublishedYear?.ToString() ?? "", false),
+            new PromptField("Vị trí kệ", book.ShelfLocation ?? "", false),
+            new PromptField("Mô tả", book.Description ?? "", false),
+            new PromptField("Đang kinh doanh (true/false)", "true", false, ["true", "false"]));
+        if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]) || string.IsNullOrWhiteSpace(values[1]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập Danh mục và Tên sách.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!TryParseYear(values[5], out var year))
+        {
+            MessageBox.Show(this, "Năm xuất bản không hợp lệ.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!bool.TryParse(values[8], out var isActive))
+        {
+            MessageBox.Show(this, "Trường 'Đang kinh doanh' phải là true hoặc false.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
         await _api.UpdateBookAsync(
             book.Id,
@@ -1170,6 +1259,8 @@ public sealed class AdminMainForm : Form
                 NullIfBlank(values[4]), year, NullIfBlank(values[6]), NullIfBlank(values[7]), isActive),
             CancellationToken.None);
         await LoadBooksAsync();
+        MessageBox.Show(this, "Đã cập nhật đầu sách.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task UploadBookCoverAsync()
@@ -1236,8 +1327,9 @@ public sealed class AdminMainForm : Form
         if (form.ShowDialog(this) != DialogResult.OK || form.SelectedCopy is null)
             return;
         var values = Prompt("Trạng thái bản sao",
-            ("Barcode", form.SelectedCopy.Barcode, false),
-            ("Trạng thái (Available/Maintenance/Lost)", form.SelectedCopy.Status, false));
+            new PromptField("Barcode", form.SelectedCopy.Barcode, false),
+            new PromptField("Trạng thái", form.SelectedCopy.Status, false,
+                ["Available", "Maintenance", "Lost"]));
         if (values is null)
             return;
         await _api.UpdateCopyStatusAsync(
@@ -1245,6 +1337,8 @@ public sealed class AdminMainForm : Form
             new CopyStatusRequest(values[1]),
             CancellationToken.None);
         await LoadBooksAsync();
+        MessageBox.Show(this, "Đã cập nhật trạng thái bản sao.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task AddCopiesAsync()
@@ -1255,13 +1349,21 @@ public sealed class AdminMainForm : Form
         var values = Prompt("Thêm bản sao",
             ("Tiền tố barcode", $"B{book.Id:D6}", false),
             ("Số lượng", "1", false));
-        if (values is null || !TryParseInt(values[1], out var quantity))
+        if (values is null)
             return;
+        if (!TryParseInt(values[1], out var quantity) || quantity <= 0)
+        {
+            MessageBox.Show(this, "Số lượng bản sao phải là số nguyên lớn hơn 0.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
         await _api.AddCopiesAsync(
             book.Id,
             new CreateCopiesRequest(quantity, values[0]),
             CancellationToken.None);
         await LoadBooksAsync();
+        MessageBox.Show(this, $"Đã thêm {quantity} bản sao.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task CreateReaderAsync()
@@ -1275,16 +1377,35 @@ public sealed class AdminMainForm : Form
             ("Mã thẻ", "", false),
             ("Giới hạn mượn", "5", false),
             ("Thời hạn thẻ (tháng)", "48", false));
-        if (values is null
-            || !short.TryParse(values[6], out var borrowLimit)
-            || !TryParseInt(values[7], out var validityMonths))
+        if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]) || string.IsNullOrWhiteSpace(values[1])
+            || string.IsNullOrWhiteSpace(values[3]) || string.IsNullOrWhiteSpace(values[5]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập Tên đăng nhập, Mật khẩu, Họ tên và Mã thẻ.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!short.TryParse(values[6], out var borrowLimit) || borrowLimit <= 0)
+        {
+            MessageBox.Show(this, "Giới hạn mượn phải là số nguyên lớn hơn 0.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!TryParseInt(values[7], out var validityMonths) || validityMonths <= 0)
+        {
+            MessageBox.Show(this, "Thời hạn thẻ (tháng) phải là số nguyên lớn hơn 0.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
         await _api.CreateReaderAsync(
             new CreateReaderRequest(values[0], values[1], values[2], values[3],
                 NullIfBlank(values[4]), values[5], borrowLimit, validityMonths),
             CancellationToken.None);
         await LoadReadersAsync();
+        MessageBox.Show(this, $"Đã tạo thẻ độc giả cho '{values[3]}'.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task UpdateReaderAsync()
@@ -1293,18 +1414,39 @@ public sealed class AdminMainForm : Form
         if (reader is null)
             return;
         var values = Prompt("Cập nhật độc giả",
-            ("Họ tên", reader.FullName, false),
-            ("Email", reader.Email, false),
-            ("Điện thoại", reader.Phone ?? "", false),
-            ("Trạng thái thẻ (Active/Inactive)", reader.CardStatus, false),
-            ("Giới hạn mượn", reader.BorrowLimit.ToString(), false),
-            ("Ngày hết hạn (yyyy-MM-dd)", reader.CardExpiryDate.ToString("yyyy-MM-dd"), false),
-            ("Tài khoản hoạt động (true/false)", reader.IsActive.ToString(), false));
-        if (values is null
-            || !short.TryParse(values[4], out var borrowLimit)
-            || !DateOnly.TryParse(values[5], CultureInfo.InvariantCulture, out var expiry)
-            || !bool.TryParse(values[6], out var isActive))
+            new PromptField("Họ tên", reader.FullName, false),
+            new PromptField("Email", reader.Email, false),
+            new PromptField("Điện thoại", reader.Phone ?? "", false),
+            new PromptField("Trạng thái thẻ", reader.CardStatus, false, ["Active", "Inactive"]),
+            new PromptField("Giới hạn mượn", reader.BorrowLimit.ToString(), false),
+            new PromptField("Ngày hết hạn (yyyy-MM-dd)", reader.CardExpiryDate.ToString("yyyy-MM-dd"), false),
+            new PromptField("Tài khoản hoạt động", reader.IsActive.ToString(), false, ["true", "false"]));
+        if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập Họ tên.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!short.TryParse(values[4], out var borrowLimit) || borrowLimit <= 0)
+        {
+            MessageBox.Show(this, "Giới hạn mượn phải là số nguyên lớn hơn 0.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!DateOnly.TryParse(values[5], CultureInfo.InvariantCulture, out var expiry))
+        {
+            MessageBox.Show(this, "Ngày hết hạn phải có định dạng yyyy-MM-dd.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!bool.TryParse(values[6], out var isActive))
+        {
+            MessageBox.Show(this, "Trường 'Tài khoản hoạt động' phải là true hoặc false.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
         await _api.UpdateReaderAsync(
             reader.ReaderId,
@@ -1312,6 +1454,8 @@ public sealed class AdminMainForm : Form
                 values[3], borrowLimit, expiry, isActive),
             CancellationToken.None);
         await LoadReadersAsync();
+        MessageBox.Show(this, "Đã cập nhật thông tin độc giả.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task DeactivateReaderAsync()
@@ -1338,6 +1482,8 @@ public sealed class AdminMainForm : Form
                 false),
             CancellationToken.None);
         await LoadReadersAsync();
+        MessageBox.Show(this, $"Đã khóa thẻ và tài khoản của {reader.FullName}.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task ResetReaderPasswordAsync()
@@ -1391,17 +1537,29 @@ public sealed class AdminMainForm : Form
             ("Mã đặt giữ (nếu có)", "", false));
         if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]) || string.IsNullOrWhiteSpace(values[1]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập Mã thẻ độc giả và Barcode bản sách.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
         long? reservationId = null;
         if (!string.IsNullOrWhiteSpace(values[2]))
         {
             if (!long.TryParse(values[2], out var parsed))
+            {
+                MessageBox.Show(this, "Mã đặt giữ phải là số.",
+                    "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
             reservationId = parsed;
         }
         await _api.CheckoutAsync(
             new CheckoutRequest(values[0], values[1], reservationId),
             CancellationToken.None);
         await LoadLoansAsync();
+        MessageBox.Show(this, "Đã ghi nhận phiếu mượn.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task ReturnAsync()
@@ -1410,13 +1568,27 @@ public sealed class AdminMainForm : Form
             ("Barcode bản sách", "", false),
             ("Phạt bổ sung (VND, nếu có)", "0", false),
             ("Lý do phạt bổ sung", "", false));
-        if (values is null || !decimal.TryParse(values[1], out var fine))
+        if (values is null)
             return;
+        if (string.IsNullOrWhiteSpace(values[0]))
+        {
+            MessageBox.Show(this, "Vui lòng nhập Barcode bản sách.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        if (!decimal.TryParse(values[1], out var fine) || fine < 0)
+        {
+            MessageBox.Show(this, "Phạt bổ sung phải là số không âm.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
         await _api.ReturnAsync(
             new ReturnRequest(values[0], NullIfBlank(values[2]), fine),
             CancellationToken.None);
         await LoadLoansAsync();
         await LoadFinesAsync();
+        MessageBox.Show(this, "Đã ghi nhận trả sách.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task RenewAsync()
@@ -1426,6 +1598,8 @@ public sealed class AdminMainForm : Form
             return;
         await _api.RenewAsync(loan.Id, CancellationToken.None);
         await LoadLoansAsync();
+        MessageBox.Show(this, $"Đã gia hạn phiếu mượn #{loan.Id}.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task CollectFineAsync()
@@ -1437,14 +1611,22 @@ public sealed class AdminMainForm : Form
             ("Độc giả", $"{fine.ReaderName} ({fine.ReaderCardNo})", false),
             ("Số tiền (để trống hoặc 0 = toàn bộ)", "0", false),
             ("Ghi chú thu tiền", "", false));
-        if (values is null || !decimal.TryParse(values[1], out var amount))
+        if (values is null)
             return;
+        if (!decimal.TryParse(values[1], out var amount) || amount < 0)
+        {
+            MessageBox.Show(this, "Số tiền thu phải là số không âm.",
+                "Thông tin chưa hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
         await _api.CollectFineAsync(
             fine.Id,
             new CollectFineRequest(amount, string.IsNullOrWhiteSpace(values[2]) ? "Thu tại quầy" : values[2]),
             CancellationToken.None);
         await LoadFinesAsync();
         await RefreshDashboardAsync();
+        MessageBox.Show(this, "Đã ghi nhận thanh toán tiền phạt.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task ReviewProposalAsync(string decision)
@@ -1463,6 +1645,9 @@ public sealed class AdminMainForm : Form
             CancellationToken.None);
         await LoadProposalsAsync();
         await RefreshDashboardAsync();
+        MessageBox.Show(this,
+            decision == "Approved" ? "Đã duyệt đề xuất." : "Đã từ chối đề xuất.",
+            "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task UpdateSettingAsync()
@@ -1481,6 +1666,8 @@ public sealed class AdminMainForm : Form
             new UpdateSystemConfigRequest(values[1], NullIfBlank(values[2])),
             CancellationToken.None);
         await LoadSettingsAsync();
+        MessageBox.Show(this, $"Đã cập nhật cấu hình '{setting.Key}'.", "Thành công",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private async Task RunAsync(Func<Task> action)
@@ -1497,6 +1684,11 @@ public sealed class AdminMainForm : Form
         catch (HttpRequestException exception)
         {
             MessageBox.Show(this, $"Không kết nối được API: {exception.Message}", "Lỗi kết nối",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(this, $"Đã xảy ra lỗi không mong muốn: {exception.Message}", "Lỗi",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -1686,9 +1878,22 @@ public sealed class AdminMainForm : Form
     private static T? Selected<T>(DataGridView grid) where T : class =>
         grid.CurrentRow?.DataBoundItem as T;
 
+    private readonly record struct PromptField(
+        string Label,
+        string Value,
+        bool IsPassword,
+        string[]? Options = null);
+
     private static string[]? Prompt(
         string title,
-        params (string Label, string Value, bool IsPassword)[] fields)
+        params (string Label, string Value, bool IsPassword)[] fields) =>
+        Prompt(
+            title,
+            fields.Select(field => new PromptField(field.Label, field.Value, field.IsPassword)).ToArray());
+
+    private static string[]? Prompt(
+        string title,
+        params PromptField[] fields)
     {
         using var dialog = new Form
         {
@@ -1713,7 +1918,7 @@ public sealed class AdminMainForm : Form
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 205));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        var inputs = new List<TextBox>(fields.Length);
+        var inputs = new List<Control>(fields.Length);
         for (var index = 0; index < fields.Length; index++)
         {
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
@@ -1724,13 +1929,35 @@ public sealed class AdminMainForm : Form
                 Anchor = AnchorStyles.Left,
                 ForeColor = TextColor
             }, 0, index);
-            var input = new TextBox
+
+            Control input;
+            if (fields[index].Options is { Length: > 0 } options)
             {
-                Text = fields[index].Value,
-                UseSystemPasswordChar = fields[index].IsPassword,
-                Dock = DockStyle.Fill
-            };
-            AdminTheme.StyleTextBox(input);
+                var combo = new ComboBox
+                {
+                    Dock = DockStyle.Fill,
+                    FlatStyle = FlatStyle.Flat,
+                    DropDownStyle = ComboBoxStyle.DropDown,
+                    BackColor = AdminTheme.SurfaceRaised,
+                    ForeColor = TextColor,
+                    Font = new Font("Segoe UI", 10F)
+                };
+                combo.Items.AddRange(options);
+                combo.Text = fields[index].Value;
+                input = combo;
+            }
+            else
+            {
+                var textBox = new TextBox
+                {
+                    Text = fields[index].Value,
+                    UseSystemPasswordChar = fields[index].IsPassword,
+                    Dock = DockStyle.Fill
+                };
+                AdminTheme.StyleTextBox(textBox);
+                input = textBox;
+            }
+
             inputs.Add(input);
             layout.Controls.Add(input, 1, index);
         }
