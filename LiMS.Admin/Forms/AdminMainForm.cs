@@ -374,7 +374,7 @@ public sealed class AdminMainForm : Form
         };
         var layout = CreatePageLayout();
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.Controls.Add(CreatePageHeader(title, GetPageDescription(title)), 0, 0);
 
@@ -841,11 +841,13 @@ public sealed class AdminMainForm : Form
     {
         var toolbar = new FlowLayoutPanel
         {
-            Dock = DockStyle.Top,
-            Height = 54,
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            MinimumSize = new Size(0, 54),
             Padding = new Padding(0, 4, 0, 4),
-            WrapContents = false,
-            AutoScroll = true,
+            WrapContents = true,
+            AutoScroll = false,
             BackColor = CanvasColor
         };
         foreach (var (title, action) in actions)
@@ -2006,7 +2008,7 @@ public sealed class AdminMainForm : Form
             column.SortMode = DataGridViewColumnSortMode.Automatic;
             column.MinimumWidth = 80;
             if (column.DataPropertyName is "Description" or "Detail" or "ReviewNote")
-                column.FillWeight = 180;
+                column.FillWeight = 140;
             else if (column.DataPropertyName is "FullName" or "BookTitle" or "Title" or "Email")
                 column.FillWeight = 140;
 
@@ -2028,7 +2030,7 @@ public sealed class AdminMainForm : Form
         if (sender is DataGridView grid
             && grid.Columns[e.ColumnIndex].DataPropertyName == nameof(BookResponse.CoverImageUrl))
         {
-            e.Value = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? "Chưa có ảnh" : "Đã có ảnh";
+            e.Value = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? "Chưa có" : "Có ảnh";
             e.FormattingApplied = true;
             return;
         }
