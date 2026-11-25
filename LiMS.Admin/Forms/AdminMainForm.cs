@@ -1116,10 +1116,10 @@ public sealed class AdminMainForm : Form
             new PromptField("Tác giả", "", false),
             new PromptField("ISBN", "", false),
             new PromptField("Nhà xuất bản", "", false),
-            new PromptField("Năm xuất bản", "", false),
+            new PromptField("Năm xuất bản", "", IsNumeric: true, NumericMax: 2100),
             new PromptField("Vị trí kệ", "", false),
             new PromptField("Mô tả", "", false),
-            new PromptField("Số bản sao ban đầu", "0", false));
+            new PromptField("Số bản sao ban đầu", "0", IsNumeric: true, NumericMax: 100000));
         if (values is null)
             return;
         if (string.IsNullOrWhiteSpace(values[0]) || string.IsNullOrWhiteSpace(values[1])
@@ -1228,7 +1228,7 @@ public sealed class AdminMainForm : Form
             new PromptField("Tác giả", book.Author, false),
             new PromptField("ISBN", book.Isbn ?? "", false),
             new PromptField("Nhà xuất bản", book.Publisher ?? "", false),
-            new PromptField("Năm xuất bản", book.PublishedYear?.ToString() ?? "", false),
+            new PromptField("Năm xuất bản", book.PublishedYear?.ToString() ?? "", IsNumeric: true, NumericMax: 2100),
             new PromptField("Vị trí kệ", book.ShelfLocation ?? "", false),
             new PromptField("Mô tả", book.Description ?? "", false),
             new PromptField("Đang kinh doanh (true/false)", "true", false, ["true", "false"]));
@@ -1353,8 +1353,8 @@ public sealed class AdminMainForm : Form
         if (book is null)
             return;
         var values = Prompt("Thêm bản sao",
-            ("Tiền tố barcode", $"B{book.Id:D6}", false),
-            ("Số lượng", "1", false));
+            new PromptField("Tiền tố barcode", $"B{book.Id:D6}", false),
+            new PromptField("Số lượng", "1", IsNumeric: true, NumericMin: 1, NumericMax: 100000));
         if (values is null)
             return;
         if (!TryParseInt(values[1], out var quantity) || quantity <= 0)
@@ -1375,14 +1375,14 @@ public sealed class AdminMainForm : Form
     private async Task CreateReaderAsync()
     {
         var values = Prompt("Tạo thẻ độc giả",
-            ("Tên đăng nhập", "", false),
-            ("Mật khẩu ban đầu", "", true),
-            ("Email", "", false),
-            ("Họ tên", "", false),
-            ("Điện thoại", "", false),
-            ("Mã thẻ", "", false),
-            ("Giới hạn mượn", "5", false),
-            ("Thời hạn thẻ (tháng)", "48", false));
+            new PromptField("Tên đăng nhập", "", false),
+            new PromptField("Mật khẩu ban đầu", "", true),
+            new PromptField("Email", "", false),
+            new PromptField("Họ tên", "", false),
+            new PromptField("Điện thoại", "", false),
+            new PromptField("Mã thẻ", "", false),
+            new PromptField("Giới hạn mượn", "5", IsNumeric: true, NumericMin: 1, NumericMax: 1000),
+            new PromptField("Thời hạn thẻ (tháng)", "48", IsNumeric: true, NumericMin: 1, NumericMax: 600));
         if (values is null)
             return;
         if (string.IsNullOrWhiteSpace(values[0]) || string.IsNullOrWhiteSpace(values[1])
@@ -1424,7 +1424,7 @@ public sealed class AdminMainForm : Form
             new PromptField("Email", reader.Email, false),
             new PromptField("Điện thoại", reader.Phone ?? "", false),
             new PromptField("Trạng thái thẻ", reader.CardStatus, false, ["Active", "Inactive"]),
-            new PromptField("Giới hạn mượn", reader.BorrowLimit.ToString(), false),
+            new PromptField("Giới hạn mượn", reader.BorrowLimit.ToString(), IsNumeric: true, NumericMin: 1, NumericMax: 1000),
             new PromptField("Ngày hết hạn (yyyy-MM-dd)", reader.CardExpiryDate.ToString("yyyy-MM-dd"), false),
             new PromptField("Tài khoản hoạt động", reader.IsActive.ToString(), false, ["true", "false"]));
         if (values is null)
@@ -1894,8 +1894,11 @@ public sealed class AdminMainForm : Form
     private readonly record struct PromptField(
         string Label,
         string Value,
-        bool IsPassword,
-        string[]? Options = null);
+        bool IsPassword = false,
+        string[]? Options = null,
+        bool IsNumeric = false,
+        decimal NumericMin = 0,
+        decimal NumericMax = 1000000);
 
     private static string[]? Prompt(
         string title,
@@ -1944,7 +1947,23 @@ public sealed class AdminMainForm : Form
             }, 0, index);
 
             Control input;
-            if (fields[index].Options is { Length: > 0 } options)
+            if (fields[index].IsNumeric)
+            {
+                var numeric = new NumericUpDown
+                {
+                    Dock = DockStyle.Fill,
+                    Minimum = fields[index].NumericMin,
+                    Maximum = fields[index].NumericMax,
+                    BackColor = AdminTheme.SurfaceRaised,
+                    ForeColor = TextColor,
+                    Font = new Font("Segoe UI", 10F),
+                    BorderStyle = BorderStyle.FixedSingle
+                };
+                if (decimal.TryParse(fields[index].Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var numericValue))
+                    numeric.Value = Math.Clamp(numericValue, numeric.Minimum, numeric.Maximum);
+                input = numeric;
+            }
+            else if (fields[index].Options is { Length: > 0 } options)
             {
                 var combo = new ComboBox
                 {
@@ -1996,7 +2015,9 @@ public sealed class AdminMainForm : Form
 
         return dialog.ShowDialog() == DialogResult.OK
             ? inputs.Select((input, index) =>
-                fields[index].IsPassword ? input.Text : input.Text.Trim()).ToArray()
+                input is NumericUpDown numeric
+                    ? numeric.Value.ToString(CultureInfo.InvariantCulture)
+                    : fields[index].IsPassword ? input.Text : input.Text.Trim()).ToArray()
             : null;
     }
 
@@ -2008,7 +2029,7 @@ public sealed class AdminMainForm : Form
 
     private static bool TryParseYear(string value, out short? year)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(value) || value == "0")
         {
             year = null;
             return true;
